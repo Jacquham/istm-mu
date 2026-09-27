@@ -73,6 +73,15 @@ header.topbar .right{display:flex;align-items:center;gap:8px;}
 .ems-footer svg{opacity:.9;}
 .ems-footer span{font-size:10.5px;letter-spacing:.02em;}
 .new-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:12px;border-radius:10px;background:var(--blue);color:#fff;border:none;font-size:13.5px;font-weight:600;margin-bottom:12px;}
+
+.detail-overlay{position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto;display:none;}
+.detail-overlay.show{display:block;}
+.detail-header{position:sticky;top:0;background:var(--blue);color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;display:flex;align-items:center;gap:10px;}
+.detail-header button{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;}
+.detail-body{padding:14px;max-width:640px;margin:0 auto 40px;}
+.mini-input{width:100%;padding:10px;margin-bottom:8px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13.5px;}
+.mini-btn{width:100%;padding:10px;border-radius:9px;background:var(--blue2);color:#fff;border:none;font-size:13px;font-weight:600;margin-bottom:14px;}
+.clickable{cursor:pointer;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
@@ -341,7 +350,7 @@ async function loadHomeAdmin(){
 
 async function loadAccountsAdmin(){
   const { data: pending } = await sb.from('users').select('id,nom,postnom,prenom,role,created_at').eq('compte_status','en_attente').order('created_at',{ascending:true});
-  const { data: rows } = await sb.from('users').select('nom,postnom,prenom,role,is_active,compte_status,created_at').order('created_at', { ascending:false }).limit(20);
+  const { data: rows } = await sb.from('users').select('id,nom,postnom,prenom,role,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).limit(30);
   const panel = document.querySelector('.tab-panel[data-tab="accounts"]');
   let h = '<h2 class="sec">Comptes en attente de validation</h2>';
   h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${roleLabels[r.role]||r.role} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
@@ -349,11 +358,126 @@ async function loadAccountsAdmin(){
         <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','valide')">Valider</button>
         <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','refuse')">Refuser</button>
       </div></div>`);
-  h += '<h2 class="sec">Tous les comptes</h2>';
+  h += '<h2 class="sec">Tous les comptes (touche pour voir la fiche)</h2>';
   const badge = r => r.compte_status==='valide' ? 'b-ok' : (r.compte_status==='en_attente' ? 'b-warn' : 'b-bad');
   const label = r => ({valide:'Actif', en_attente:'En attente', refuse:'Refusé', suspendu:'Suspendu'})[r.compte_status] || r.compte_status;
-  h += fmtEmpty(rows, r => `<div class="list-item"><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${roleLabels[r.role]||r.role}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`);
+  window.__accountsCache = rows || [];
+  h += fmtEmpty(rows, r => `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${roleLabels[r.role]||r.role}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`);
   panel.innerHTML = h;
+}
+
+function fld(v){ return (v===null||v===undefined||v==='') ? '<span style="color:var(--muted)">—</span>' : v; }
+
+async function openUserDetail(id){
+  const u = (window.__accountsCache||[]).find(x => x.id === id);
+  if(!u) return;
+  document.getElementById('detailName').textContent = `${u.nom} ${u.prenom}`;
+  document.getElementById('detailRole').textContent = roleLabels[u.role] || u.role;
+  document.getElementById('detailBody').innerHTML = 'Chargement…';
+  document.getElementById('detailOverlay').classList.add('show');
+
+  let body = `<h2 class="sec">Profil</h2>
+    <div class="list-item"><div><div class="t">Email</div><div class="s">${fld(u.email)}</div></div></div>
+    <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(u.telephone)}</div></div></div>`;
+
+  if(u.role === 'etudiant'){
+    const { data: stu } = await sb.from('students').select('*, promotions(nom)').eq('id', id).maybeSingle();
+    if(!stu){
+      body += `<h2 class="sec">Dossier académique</h2>
+        <div class="note">Pas encore de dossier étudiant (matricule non assigné).</div>
+        <input class="mini-input" id="newMatricule" placeholder="Matricule à attribuer (ex: 26-MU-045)">
+        <button class="mini-btn" onclick="completeStudent('${id}')">Créer le dossier étudiant</button>`;
+      document.getElementById('detailBody').innerHTML = body;
+      return;
+    }
+    body += `<h2 class="sec">Dossier académique</h2>
+      <div class="list-item"><div><div class="t">Matricule</div><div class="s">${fld(stu.matricule)}</div></div></div>
+      <div class="list-item"><div><div class="t">Promotion</div><div class="s">${fld(stu.promotions && stu.promotions.nom)}</div></div></div>`;
+
+    const [{data:grades},{data:att},{data:pay}] = await Promise.all([
+      sb.from('grades').select('*').eq('student_id', id).order('created_at',{ascending:false}).limit(10),
+      sb.from('attendance').select('*').eq('student_id', id).order('date_seance',{ascending:false}).limit(10),
+      sb.from('payments').select('*').eq('student_id', id).order('created_at',{ascending:false}).limit(10)
+    ]);
+
+    body += `<h2 class="sec">Notes</h2>` + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
+    body += `<input class="mini-input" id="gIntitule" placeholder="Intitulé (ex: Interro biologie)">
+      <select class="mini-input" id="gType"><option value="interrogation">Interrogation</option><option value="tp">TP</option><option value="td">TD</option><option value="examen">Examen</option><option value="examen_final">Examen final</option></select>
+      <input class="mini-input" id="gNote" type="number" placeholder="Note obtenue" step="0.1">
+      <input class="mini-input" id="gMax" type="number" placeholder="Note maximale (ex: 20)" value="20" step="0.1">
+      <button class="mini-btn" onclick="addGrade('${id}')">Ajouter la note</button>`;
+
+    body += `<h2 class="sec">Présences</h2>` + fmtEmpty(att, a => `<div class="list-item"><div><div class="t">${new Date(a.date_seance).toLocaleDateString()}</div></div><span class="badge ${a.statut==='present'?'b-ok':(a.statut==='retard'?'b-warn':'b-bad')}">${a.statut}</span></div>`);
+    body += `<input class="mini-input" id="aDate" type="date">
+      <select class="mini-input" id="aStatut"><option value="present">Présent</option><option value="absent">Absent</option><option value="retard">Retard</option><option value="justifie">Justifié</option></select>
+      <button class="mini-btn" onclick="addAttendance('${id}')">Enregistrer la présence</button>`;
+
+    body += `<h2 class="sec">Paiements</h2>` + fmtEmpty(pay, p => `<div class="list-item"><div><div class="t">${p.type_frais}</div><div class="s">${p.montant_paye}/${p.montant} CDF</div></div><span class="badge ${p.statut==='paye'?'b-ok':(p.statut==='partiel'?'b-warn':'b-bad')}">${p.statut}</span></div>`);
+    body += `<input class="mini-input" id="pType" placeholder="Type de frais (ex: Minerval)">
+      <input class="mini-input" id="pMontant" type="number" placeholder="Montant demandé (CDF)">
+      <input class="mini-input" id="pPaye" type="number" placeholder="Montant déjà payé (CDF)" value="0">
+      <select class="mini-input" id="pStatut"><option value="non_paye">Non payé</option><option value="partiel">Partiel</option><option value="paye">Payé</option></select>
+      <button class="mini-btn" onclick="addPayment('${id}')">Enregistrer le paiement</button>`;
+  }
+  else if(u.role === 'enseignant'){
+    const { data: tea } = await sb.from('teachers').select('*').eq('id', id).maybeSingle();
+    if(!tea){
+      body += `<h2 class="sec">Dossier enseignant</h2>
+        <div class="note">Pas encore de dossier enseignant.</div>
+        <input class="mini-input" id="newMatEns" placeholder="Matricule enseignant">
+        <input class="mini-input" id="newSpec" placeholder="Spécialité">
+        <button class="mini-btn" onclick="completeTeacher('${id}')">Créer le dossier enseignant</button>`;
+    } else {
+      body += `<h2 class="sec">Dossier enseignant</h2>
+        <div class="list-item"><div><div class="t">Matricule</div><div class="s">${fld(tea.matricule_enseignant)}</div></div></div>
+        <div class="list-item"><div><div class="t">Spécialité</div><div class="s">${fld(tea.specialite)}</div></div></div>`;
+    }
+  }
+  document.getElementById('detailBody').innerHTML = body;
+}
+function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
+
+async function completeStudent(id){
+  const matricule = document.getElementById('newMatricule').value.trim();
+  if(!matricule){ alert('Merci de saisir un matricule.'); return; }
+  const { error } = await sb.from('students').insert({ id, matricule });
+  if(error){ alert("Erreur : " + error.message); return; }
+  openUserDetail(id);
+}
+async function completeTeacher(id){
+  const matricule_enseignant = document.getElementById('newMatEns').value.trim();
+  const specialite = document.getElementById('newSpec').value.trim();
+  const { error } = await sb.from('teachers').insert({ id, matricule_enseignant: matricule_enseignant || null, specialite: specialite || null });
+  if(error){ alert("Erreur : " + error.message); return; }
+  openUserDetail(id);
+}
+async function addGrade(id){
+  const intitule = document.getElementById('gIntitule').value.trim();
+  const type_evaluation = document.getElementById('gType').value;
+  const note = parseFloat(document.getElementById('gNote').value);
+  const note_max = parseFloat(document.getElementById('gMax').value) || 20;
+  if(isNaN(note)){ alert('Merci de saisir une note.'); return; }
+  const { error } = await sb.from('grades').insert({ student_id:id, type_evaluation, intitule, note, note_max, recorded_by: currentProfile.id });
+  if(error){ alert("Erreur : " + error.message); return; }
+  openUserDetail(id);
+}
+async function addAttendance(id){
+  const date_seance = document.getElementById('aDate').value;
+  const statut = document.getElementById('aStatut').value;
+  if(!date_seance){ alert('Merci de choisir une date.'); return; }
+  const { error } = await sb.from('attendance').insert({ student_id:id, date_seance, statut, recorded_by: currentProfile.id });
+  if(error){ alert("Erreur : " + error.message); return; }
+  openUserDetail(id);
+}
+async function addPayment(id){
+  const type_frais = document.getElementById('pType').value.trim();
+  const montant = parseFloat(document.getElementById('pMontant').value);
+  const montant_paye = parseFloat(document.getElementById('pPaye').value) || 0;
+  const statut = document.getElementById('pStatut').value;
+  if(!type_frais || isNaN(montant)){ alert('Merci de remplir le type et le montant.'); return; }
+  const { error } = await sb.from('payments').insert({ student_id:id, type_frais, montant, montant_paye, statut, recorded_by: currentProfile.id });
+  if(error){ alert("Erreur : " + error.message); return; }
+  openUserDetail(id);
 }
 async function validateAccount(id, status){
   await sb.from('users').update({ compte_status: status }).eq('id', id);
@@ -411,5 +535,15 @@ async function logout(){
 // Si deja connecte (session existante), on rentre directement
 sb.auth.getSession().then(({data})=>{ if(data.session) loadProfileAndEnter(); });
 </script>
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-header">
+    <button onclick="closeDetail()">← Retour</button>
+    <div>
+      <div style="font-weight:700;font-size:14px;" id="detailName"></div>
+      <div style="font-size:11.5px;opacity:.85;" id="detailRole"></div>
+    </div>
+  </div>
+  <div class="detail-body" id="detailBody">Chargement…</div>
+</div>
 </body>
 </html>
