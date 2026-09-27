@@ -207,9 +207,10 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
     <div class="tab-panel" data-tab="more">
       <h2 class="sec">Annonces</h2>
-      <div class="list-item"><div><div class="t">Réunion académique — 30/09</div><div class="s">Tous les enseignants</div></div></div>
+      <div id="announcementsPublish"></div>
+      <div id="announcementsList"><div class="note">Chargement…</div></div>
       <h2 class="sec">Documents</h2>
-      <div class="list-item"><div><div class="t">Relevé de notes L2 - Sem.1</div><div class="s">PDF · 240 Ko</div></div><span class="badge b-ok">Prêt</span></div>
+      <div class="note">Bientôt disponible.</div>
     </div>
 
     <div class="note" id="footNote"></div>
@@ -528,6 +529,7 @@ function enter(profile){
     document.getElementById('panel-home').innerHTML = '<div class="note">Tableau de bord en cours de connexion pour ce rôle — reviens bientôt.</div>';
     document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<div class="note">Bientôt disponible.</div>';
   }
+  loadAnnouncements(profile);
 }
 
 async function loadHomeStudent(profile){
@@ -564,6 +566,53 @@ async function loadHomeStudent(profile){
 
   coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
+const audienceLabels = { tous_etudiants:"Tous les étudiants", l1:"L1", l2:"L2", l3:"L3", enseignants:"Enseignants", administrateurs:"Administrateurs" };
+
+async function loadAnnouncements(profile){
+  const listEl = document.getElementById('announcementsList');
+  const pubEl = document.getElementById('announcementsPublish');
+  if(!listEl) return;
+
+  if(profile.role === 'admin_central' || profile.role === 'admin_academique' || profile.role === 'enseignant'){
+    pubEl.innerHTML = `<input class="mini-input" id="anTitre" placeholder="Titre de l'annonce">
+      <input class="mini-input" id="anContenu" placeholder="Contenu">
+      <select class="mini-input" id="anAudience">
+        <option value="tous_etudiants">Tous les étudiants</option>
+        <option value="l1">L1</option><option value="l2">L2</option><option value="l3">L3</option>
+        <option value="enseignants">Enseignants</option>
+        <option value="administrateurs">Administrateurs</option>
+      </select>
+      <button class="mini-btn" onclick="publishAnnouncement()">Publier l'annonce</button>`;
+  } else {
+    pubEl.innerHTML = '';
+  }
+
+  const { data: all } = await sb.from('announcements').select('*').order('created_at',{ascending:false}).limit(30);
+  let visible = all || [];
+  if(profile.role === 'etudiant'){
+    const { data: stu } = await sb.from('students').select('promotions(niveau)').eq('id', profile.id).maybeSingle();
+    const niveau = stu && stu.promotions ? stu.promotions.niveau.toLowerCase() : null;
+    visible = visible.filter(a => a.audience === 'tous_etudiants' || a.audience === niveau);
+  } else if(profile.role === 'enseignant'){
+    visible = visible.filter(a => a.audience === 'enseignants');
+  }
+  // admins voient tout
+
+  listEl.innerHTML = fmtEmpty(visible, a => `<div class="list-item"><div><div class="t">${a.titre}</div><div class="s">${a.contenu||''}</div></div><span class="badge b-ok">${audienceLabels[a.audience]||a.audience}</span></div>`);
+}
+
+async function publishAnnouncement(){
+  const titre = document.getElementById('anTitre').value.trim();
+  const contenu = document.getElementById('anContenu').value.trim();
+  const audience = document.getElementById('anAudience').value;
+  if(!titre){ alert('Merci de saisir un titre.'); return; }
+  const { error } = await sb.from('announcements').insert({ titre, contenu, audience, created_by: currentProfile.id });
+  if(error){ alert("Erreur : " + error.message); return; }
+  document.getElementById('anTitre').value = '';
+  document.getElementById('anContenu').value = '';
+  loadAnnouncements(currentProfile);
+}
+
 function showTab(name, btn){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.tab===name));
   document.querySelectorAll('#tabsNav button').forEach(b=>b.classList.remove('active'));
