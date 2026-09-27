@@ -198,11 +198,8 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <div class="list-item"><div><div class="t">MUAMBA Divin</div><div class="s">Frais d'examen L3 · réf. PMT-0227</div></div><span class="badge b-ok">Payé</span></div>
     </div>
 
-    <div class="tab-panel" data-tab="schedule">
-      <h2 class="sec">Horaire — Cette semaine</h2>
-      <div class="list-item"><div><div class="t">Lundi 07:30 — Réanimation</div><div class="s">Salle B2</div></div></div>
-      <div class="list-item"><div><div class="t">Mardi 09:00 — Soins d'urgence</div><div class="s">Salle A1</div></div></div>
-      <div class="list-item"><div><div class="t">Jeudi 13:00 — Pharmacologie</div><div class="s">Salle C3</div></div></div>
+    <div class="tab-panel" data-tab="schedule" id="panel-schedule">
+      <div class="note">Chargement…</div>
     </div>
 
     <div class="tab-panel" data-tab="more">
@@ -523,8 +520,10 @@ function enter(profile){
     loadHomeAdmin();
     if(tabs.some(t=>t[0]==='accounts')) loadAccountsAdmin();
     if(tabs.some(t=>t[0]==='finance')) loadFinanceAdmin();
+    loadScheduleAdmin();
   } else if(profile.role === 'etudiant'){
     loadHomeStudent(profile);
+    loadScheduleStudent(profile);
   } else {
     document.getElementById('panel-home').innerHTML = '<div class="note">Tableau de bord en cours de connexion pour ce rôle — reviens bientôt.</div>';
     document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<div class="note">Bientôt disponible.</div>';
@@ -566,6 +565,82 @@ async function loadHomeStudent(profile){
 
   coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
+const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+async function loadScheduleAdmin(){
+  const panel = document.getElementById('panel-schedule');
+  const [{data:courses},{data:promos},{data:teachers},{data:scheds}] = await Promise.all([
+    sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id').order('code'),
+    sb.from('promotions').select('id,nom').order('niveau'),
+    sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom)'),
+    sb.from('schedules').select('*, courses(intitule), promotions(nom)').order('jour')
+  ]);
+  window.__coursesCache = courses || [];
+  window.__promosCache = promos || [];
+
+  const promoOptions = (promos||[]).map(p=>`<option value="${p.id}">${p.nom}</option>`).join('');
+  const teacherOptions = (teachers||[]).map(t=>`<option value="${t.id}">${(t.users&&t.users.nom)||''} ${(t.users&&t.users.prenom)||''}</option>`).join('');
+
+  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => `<div class="list-item"><div><div class="t">${c.code} — ${c.intitule}</div></div></div>`);
+  h += `<input class="mini-input" id="cCode" placeholder="Code du cours (ex: MU101)">
+    <input class="mini-input" id="cIntitule" placeholder="Intitulé du cours">
+    <select class="mini-input" id="cPromo"><option value="">— Promotion —</option>${promoOptions}</select>
+    <select class="mini-input" id="cTeacher"><option value="">— Enseignant responsable (optionnel) —</option>${teacherOptions}</select>
+    <input class="mini-input" id="cCredits" type="number" placeholder="Crédits (ex: 4)">
+    <button class="mini-btn" onclick="addCourse()">Ajouter le cours</button>`;
+
+  h += `<h2 class="sec">Horaire</h2>` + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${s.jour} ${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">${s.promotions?s.promotions.nom:''} · Salle ${s.salle||'—'}</div></div></div>`);
+  const courseOptions = (courses||[]).map(c=>`<option value="${c.id}">${c.code} — ${c.intitule}</option>`).join('');
+  h += `<select class="mini-input" id="sCourse"><option value="">— Choisir un cours —</option>${courseOptions}</select>
+    <select class="mini-input" id="sJour">${jours.map(j=>`<option value="${j}">${j}</option>`).join('')}</select>
+    <input class="mini-input" id="sDebut" type="time">
+    <input class="mini-input" id="sFin" type="time">
+    <input class="mini-input" id="sSalle" placeholder="Salle (ex: B2)">
+    <button class="mini-btn" onclick="addSchedule()">Ajouter au planning</button>`;
+
+  panel.innerHTML = h;
+}
+
+async function addCourse(){
+  const code = document.getElementById('cCode').value.trim();
+  const intitule = document.getElementById('cIntitule').value.trim();
+  const promotion_id = document.getElementById('cPromo').value || null;
+  const enseignant_responsable_id = document.getElementById('cTeacher').value || null;
+  const credits = parseInt(document.getElementById('cCredits').value) || null;
+  if(!code || !intitule){ alert('Code et intitulé requis.'); return; }
+  const { error } = await sb.from('courses').insert({ code, intitule, promotion_id, enseignant_responsable_id, credits });
+  if(error){ alert("Erreur : " + error.message); return; }
+  loadScheduleAdmin();
+}
+
+async function addSchedule(){
+  const course_id = document.getElementById('sCourse').value;
+  const jour = document.getElementById('sJour').value;
+  const heure_debut = document.getElementById('sDebut').value;
+  const heure_fin = document.getElementById('sFin').value;
+  const salle = document.getElementById('sSalle').value.trim();
+  if(!course_id || !heure_debut || !heure_fin){ alert('Cours, heure de début et de fin requis.'); return; }
+  const course = (window.__coursesCache||[]).find(c=>c.id===course_id);
+  const { error } = await sb.from('schedules').insert({
+    course_id, jour, heure_debut, heure_fin, salle,
+    promotion_id: course ? course.promotion_id : null,
+    teacher_id: course ? course.enseignant_responsable_id : null
+  });
+  if(error){ alert("Erreur : " + error.message); return; }
+  loadScheduleAdmin();
+}
+
+async function loadScheduleStudent(profile){
+  const panel = document.getElementById('panel-schedule');
+  const { data: stu } = await sb.from('students').select('promotion_id').eq('id', profile.id).maybeSingle();
+  if(!stu || !stu.promotion_id){
+    panel.innerHTML = '<div class="note">Ta promotion n\'est pas encore assignée — l\'horaire apparaîtra une fois ton dossier complété.</div>';
+    return;
+  }
+  const { data: scheds } = await sb.from('schedules').select('*, courses(intitule)').eq('promotion_id', stu.promotion_id).order('jour');
+  panel.innerHTML = '<h2 class="sec">Mon horaire</h2>' + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${s.jour} ${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">Salle ${s.salle||'—'}</div></div></div>`);
+}
+
 const audienceLabels = { tous_etudiants:"Tous les étudiants", l1:"L1", l2:"L2", l3:"L3", enseignants:"Enseignants", administrateurs:"Administrateurs" };
 
 async function loadAnnouncements(profile){
