@@ -507,9 +507,47 @@ function enter(profile){
     loadHomeAdmin();
     if(tabs.some(t=>t[0]==='accounts')) loadAccountsAdmin();
     if(tabs.some(t=>t[0]==='finance')) loadFinanceAdmin();
+  } else if(profile.role === 'etudiant'){
+    loadHomeStudent(profile);
   } else {
     document.getElementById('panel-home').innerHTML = '<div class="note">Tableau de bord en cours de connexion pour ce rôle — reviens bientôt.</div>';
+    document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<div class="note">Bientôt disponible.</div>';
   }
+}
+
+async function loadHomeStudent(profile){
+  const { data: stu } = await sb.from('students').select('*, promotions(nom)').eq('id', profile.id).maybeSingle();
+  const homePanel = document.getElementById('panel-home');
+  const coursesPanel = document.querySelector('.tab-panel[data-tab="courses"]');
+
+  if(!stu){
+    homePanel.innerHTML = `<div class="note">Ton dossier académique n'a pas encore été complété par l'administration (matricule, promotion). Reviens un peu plus tard, ou contacte l'administration.</div>`;
+    coursesPanel.innerHTML = '<div class="note">Pas encore de dossier académique.</div>';
+    return;
+  }
+
+  const [{data:grades},{data:att},{data:pay}] = await Promise.all([
+    sb.from('grades').select('*').eq('student_id', profile.id).order('created_at',{ascending:false}),
+    sb.from('attendance').select('*').eq('student_id', profile.id),
+    sb.from('payments').select('*').eq('student_id', profile.id)
+  ]);
+
+  const nbPresent = (att||[]).filter(a=>a.statut==='present').length;
+  const tauxPresence = (att && att.length) ? Math.round(100*nbPresent/att.length)+'%' : '—';
+  const moyenne = (grades && grades.length) ? (grades.reduce((s,g)=>s+(g.note/g.note_max*20),0)/grades.length).toFixed(1) : '—';
+  const soldeTotal = (pay||[]).reduce((s,p)=>s+(p.montant-p.montant_paye),0);
+
+  homePanel.innerHTML = `<h2 class="sec">Mon profil</h2>
+    <div class="grid">
+      <div class="stat"><b>${fld(stu.matricule)}</b><span>Matricule</span></div>
+      <div class="stat"><b>${fld(stu.promotions && stu.promotions.nom) || 'Non assignée'}</b><span>Promotion</span></div>
+      <div class="stat"><b>${moyenne}</b><span>Moyenne générale</span></div>
+      <div class="stat"><b>${tauxPresence}</b><span>Taux de présence</span></div>
+    </div>
+    <h2 class="sec">Situation financière</h2>
+    <div class="list-item"><div><div class="t">Solde restant</div></div><span class="badge ${soldeTotal>0?'b-warn':'b-ok'}">${soldeTotal} CDF</span></div>`;
+
+  coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
 function showTab(name, btn){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.tab===name));
