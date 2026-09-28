@@ -628,10 +628,119 @@ async function savePerms(id){
   loadSystemAdmin();
 }
 
+const recetteCats = ['Contributions','Frais académiques','Cotisations','Dons','Autres recettes'];
+const depenseCats = ['Fournitures','Impression','Transport','Communication','Matériel','Activités','Entretien','Missions','Autres dépenses'];
+
+function localToday(){ return new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10); }
+
+function finSwitcher(active){
+  const st = on => `flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:13px;font-weight:600;background:${on?'var(--blue)':'var(--card)'};color:${on?'#fff':'var(--text)'};`;
+  return `<div style="display:flex;gap:8px;margin-bottom:6px;">
+    <button style="${st(active==='etudiants')}" onclick="setFinView('etudiants')">Paiements étudiants</button>
+    <button style="${st(active==='caisse')}" onclick="setFinView('caisse')">Caisse du bureau</button>
+  </div>`;
+}
+function setFinView(v){ window.__finView = v; loadFinanceAdmin(); }
+
+async function loadCaisse(){
+  const panel = document.querySelector('.tab-panel[data-tab="finance"]');
+  const { data: ops, error } = await sb.from('finance_operations').select('*')
+    .order('date_operation',{ascending:false}).order('created_at',{ascending:false}).limit(1000);
+  if(error){ panel.innerHTML = finSwitcher('caisse') + `<div class="note">Impossible de charger la caisse : ${error.message}</div>`; return; }
+  const list = ops || [];
+  window.__caisseOps = list;
+  const uids = [...new Set(list.map(o => o.created_by).filter(Boolean))];
+  const names = {};
+  if(uids.length){
+    const { data: us } = await sb.from('users').select('id,nom,prenom').in('id', uids);
+    (us||[]).forEach(u => { names[u.id] = `${u.nom} ${u.prenom}`; });
+  }
+  window.__caisseNames = names;
+
+  const today = localToday(), month = today.slice(0,7), year = today.slice(0,4);
+  const sum = (arr, t) => arr.filter(o => o.type === t).reduce((s,o) => s + Number(o.montant), 0);
+  const inPeriod = p => list.filter(o => o.date_operation.startsWith(p));
+  const day = list.filter(o => o.date_operation === today);
+  const rTot = sum(list,'recette'), dTot = sum(list,'depense');
+  const soldeMois = sum(inPeriod(month),'recette') - sum(inPeriod(month),'depense');
+  const soldeAn = sum(inPeriod(year),'recette') - sum(inPeriod(year),'depense');
+  const cls = v => v < 0 ? 'color:var(--danger)' : 'color:var(--green)';
+
+  let h = finSwitcher('caisse');
+  h += `<h2 class="sec">Situation de la caisse</h2><div class="grid">
+    <div class="stat"><b>${fmtMoney(rTot)}</b><span>Total recettes</span></div>
+    <div class="stat"><b>${fmtMoney(dTot)}</b><span>Total dépenses</span></div>
+    <div class="stat"><b style="${cls(rTot-dTot)}">${fmtMoney(rTot-dTot)}</b><span>Solde global</span></div>
+    <div class="stat"><b>${fmtMoney(sum(day,'recette'))}</b><span>Recettes du jour</span></div>
+    <div class="stat"><b>${fmtMoney(sum(day,'depense'))}</b><span>Dépenses du jour</span></div>
+    <div class="stat"><b style="${cls(soldeMois)}">${fmtMoney(soldeMois)}</b><span>Solde du mois</span></div>
+    <div class="stat"><b style="${cls(soldeAn)}">${fmtMoney(soldeAn)}</b><span>Solde de l'année</span></div>
+  </div>`;
+
+  h += `<h2 class="sec">Nouvelle opération</h2>
+    <select class="mini-input" id="fcType" onchange="onFcTypeChange()"><option value="recette">Recette</option><option value="depense">Dépense</option></select>
+    <select class="mini-input" id="fcCat">${recetteCats.map(c => `<option>${c}</option>`).join('')}</select>
+    <input class="mini-input" id="fcDate" type="date" value="${today}">
+    <input class="mini-input" id="fcMontant" type="number" placeholder="Montant (CDF)">
+    <input class="mini-input" id="fcMotif" placeholder="Motif (ex: Achat de papier)">
+    <input class="mini-input" id="fcObs" placeholder="Observation (optionnel)">
+    <button class="mini-btn" onclick="addOperation()">Enregistrer l'opération</button>`;
+
+  h += `<h2 class="sec">Historique</h2>
+    <select class="mini-input" id="fcPeriod" onchange="renderCaisseList()">
+      <option value="tout">Toutes les opérations</option><option value="jour">Aujourd'hui</option>
+      <option value="mois">Ce mois</option><option value="annee">Cette année</option>
+    </select><div id="caisseList"></div>`;
+  panel.innerHTML = h;
+  renderCaisseList();
+}
+
+function onFcTypeChange(){
+  const t = document.getElementById('fcType').value;
+  document.getElementById('fcCat').innerHTML = (t === 'recette' ? recetteCats : depenseCats).map(c => `<option>${c}</option>`).join('');
+}
+
+function renderCaisseList(){
+  const p = document.getElementById('fcPeriod') ? document.getElementById('fcPeriod').value : 'tout';
+  const today = localToday();
+  let list = window.__caisseOps || [];
+  if(p === 'jour') list = list.filter(o => o.date_operation === today);
+  if(p === 'mois') list = list.filter(o => o.date_operation.startsWith(today.slice(0,7)));
+  if(p === 'annee') list = list.filter(o => o.date_operation.startsWith(today.slice(0,4)));
+  const names = window.__caisseNames || {};
+  const isCentral = currentProfile && currentProfile.role === 'admin_central';
+  document.getElementById('caisseList').innerHTML = fmtEmpty(list.slice(0,60), o => `<div class="list-item"><div><div class="t">${o.numero||''} — ${o.motif}</div><div class="s">${o.categorie||''} · ${new Date(o.date_operation).toLocaleDateString('fr-FR')} · ${o.created_by ? (names[o.created_by]||'') : 'Système'}${o.source_payment_id?' · automatique':''}${o.observation?' · '+o.observation:''}</div></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span class="badge ${o.type==='recette'?'b-ok':'b-bad'}">${o.type==='recette'?'+':'−'} ${fmtMoney(o.montant)}</span>${isCentral?`<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:5px 8px;font-size:11px;" onclick="deleteOperation('${o.id}')">Suppr.</button>`:''}</div></div>`);
+}
+
+async function addOperation(){
+  const type = document.getElementById('fcType').value;
+  const categorie = document.getElementById('fcCat').value;
+  const date_operation = document.getElementById('fcDate').value || localToday();
+  const montant = parseFloat(document.getElementById('fcMontant').value);
+  const motif = document.getElementById('fcMotif').value.trim();
+  const observation = document.getElementById('fcObs').value.trim();
+  if(isNaN(montant) || montant <= 0){ alert("Saisis un montant supérieur à 0."); return; }
+  if(!motif){ alert("Le motif est obligatoire."); return; }
+  const { error } = await sb.from('finance_operations').insert({ type, categorie, date_operation, montant, motif, observation: observation || null, created_by: currentProfile.id });
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert("Opération enregistrée.");
+  loadCaisse();
+}
+
+async function deleteOperation(id){
+  if(!confirm("Supprimer cette opération ? Cette action sera notée dans le journal.")) return;
+  const { data, error } = await sb.from('finance_operations').delete().eq('id', id).select();
+  if(error){ alert("Erreur : " + error.message); return; }
+  if(!data || !data.length){ alert("Suppression refusée : réservée à l'administrateur central."); return; }
+  loadCaisse();
+}
+
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
 const prBadge = s => ({en_attente:['b-warn','En attente'], valide:['b-ok','Validé'], refuse:['b-bad','Refusé'], annule:['b-bad','Annulé']})[s] || ['b-warn', s];
 
 async function loadFinanceAdmin(){
+  if((window.__finView || 'etudiants') === 'caisse'){ return loadCaisse(); }
   const panel = document.querySelector('.tab-panel[data-tab="finance"]');
   const [{data:contribs},{data:promos},{data:reqs},{data:pays}] = await Promise.all([
     sb.from('contributions').select('*, promotions(nom)').order('created_at',{ascending:false}),
@@ -649,7 +758,7 @@ async function loadFinanceAdmin(){
   const treated = (reqs||[]).filter(r => r.statut !== 'en_attente').slice(0,10);
   const promoOptions = (promos||[]).map(p => `<option value="${p.id}">${p.nom}</option>`).join('');
 
-  let h = `<h2 class="sec">Paiements à valider (${pending.length})</h2>`;
+  let h = finSwitcher('etudiants') + `<h2 class="sec">Paiements à valider (${pending.length})</h2>`;
   h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${names[r.student_id]||'Étudiant'} — ${fmtMoney(r.montant)}</div><div class="s">${r.contributions?r.contributions.reference+' '+r.contributions.titre:''} · ${r.mode_paiement||'—'} · réf. ${r.reference_paiement||'—'}</div></div>
       <div style="display:flex;gap:6px;">
         <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="reviewPayment('${r.id}','valide')">Valider</button>
