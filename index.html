@@ -198,6 +198,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <div class="list-item"><div><div class="t">MUAMBA Divin</div><div class="s">Frais d'examen L3 · réf. PMT-0227</div></div><span class="badge b-ok">Payé</span></div>
     </div>
 
+    <div class="tab-panel" data-tab="system" id="panel-system"><div class="note">Chargement…</div></div>
     <div class="tab-panel" data-tab="schedule" id="panel-schedule">
       <div class="note">Chargement…</div>
     </div>
@@ -237,6 +238,7 @@ async function doLogin(){
   if(!email || !pass){ errEl.textContent = 'Renseigne email et mot de passe.'; return; }
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
   if(error){ errEl.textContent = "Connexion refusée : email ou mot de passe incorrect."; return; }
+  window.__justLoggedIn = true;
   await loadProfileAndEnter();
 }
 
@@ -314,7 +316,7 @@ async function doChangePassword(){
 
 const roleLabels = { admin_central:"Administrateur central", admin_academique:"Administrateur académique", enseignant:"Enseignant", etudiant:"Étudiant" };
 const tabsByRole = {
-  admin_central:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["finance","💰","Finances"],["schedule","🗓️","Horaires"],["more","📢","Plus"]],
+  admin_central:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["finance","💰","Finances"],["schedule","🗓️","Horaires"],["more","📢","Plus"],["system","⚙️","Système"]],
   admin_academique:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["schedule","🗓️","Horaires"],["more","📢","Plus"]],
   enseignant:[["home","🏠","Accueil"],["courses","📚","Mes cours"],["schedule","🗓️","Horaire"],["more","📢","Plus"]],
   etudiant:[["home","🏠","Accueil"],["courses","📚","Mes notes"],["finance","💰","Paiements"],["schedule","🗓️","Horaire"],["more","📢","Plus"]]
@@ -513,6 +515,7 @@ function enter(profile){
     if(tabs.some(t=>t[0]==='accounts')) loadAccountsAdmin();
     if(tabs.some(t=>t[0]==='finance')) loadFinanceAdmin();
     loadScheduleAdmin();
+    if(profile.role==='admin_central') loadSystemAdmin();
   } else if(profile.role === 'etudiant'){
     loadHomeStudent(profile);
     loadScheduleStudent(profile);
@@ -525,6 +528,7 @@ function enter(profile){
   }
   loadAnnouncements(profile);
   loadNotifications(profile);
+  if(window.__justLoggedIn){ window.__justLoggedIn = false; logEvent('LOGIN', 'Connexion'); }
   if(!window.__notifTimer){ window.__notifTimer = setInterval(() => { if(currentProfile) loadNotifications(currentProfile); }, 60000); }
 }
 
@@ -562,6 +566,68 @@ async function loadHomeStudent(profile){
 
   coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
+const permKeys = [
+  ['etudiants', 'Étudiants (créer et modifier les dossiers)'],
+  ['academique', 'Cours, horaires, promotions, examens, présences'],
+  ['resultats', 'Notes et résultats'],
+  ['finances', 'Finances, contributions et paiements'],
+  ['annonces', 'Publier des annonces']
+];
+const actionLabels = { INSERT:['b-ok','Création'], UPDATE:['b-warn','Modification'], DELETE:['b-bad','Suppression'], LOGIN:['b-ok','Connexion'], LOGOUT:['b-warn','Déconnexion'] };
+
+async function logEvent(action, description){
+  if(!currentProfile) return;
+  try { await sb.from('audit_logs').insert({ user_id: currentProfile.id, action, description }); } catch(e) {}
+}
+
+async function loadSystemAdmin(){
+  const panel = document.getElementById('panel-system');
+  const [{data:admins},{data:logs}] = await Promise.all([
+    sb.from('users').select('id,nom,prenom').eq('role','admin_academique').eq('compte_status','valide'),
+    sb.from('audit_logs').select('*').order('created_at',{ascending:false}).limit(60)
+  ]);
+  const perms = {};
+  const aids = (admins||[]).map(a => a.id);
+  if(aids.length){
+    const { data: ad } = await sb.from('administrators').select('id,permissions').in('id', aids);
+    (ad||[]).forEach(a => { perms[a.id] = a.permissions || {}; });
+  }
+  const uids = [...new Set((logs||[]).map(l => l.user_id).filter(Boolean))];
+  const names = {};
+  if(uids.length){
+    const { data: us } = await sb.from('users').select('id,nom,prenom').in('id', uids);
+    (us||[]).forEach(u => { names[u.id] = `${u.nom} ${u.prenom}`; });
+  }
+
+  let h = `<h2 class="sec">Administrateurs et permissions</h2>`;
+  if(!(admins||[]).length){
+    h += `<div class="note">Aucun administrateur secondaire validé pour le moment. Une personne inscrite comme « Personnel administratif » apparaît ici une fois son compte validé.</div>`;
+  } else {
+    h += (admins||[]).map(a => {
+      const p = perms[a.id] || {};
+      const boxes = permKeys.map(k => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:7px 0;"><input type="checkbox" id="perm_${a.id}_${k[0]}" ${p[k[0]] ? 'checked' : ''}> ${k[1]}</label>`).join('');
+      return `<div class="stat" style="margin-bottom:10px;"><b style="font-size:15px;">${a.nom} ${a.prenom}</b>${boxes}<button class="mini-btn" style="margin:8px 0 0;" onclick="savePerms('${a.id}')">Enregistrer les permissions</button></div>`;
+    }).join('');
+  }
+
+  h += `<h2 class="sec">Journal d'activités (60 dernières actions)</h2>
+    <button class="mini-btn" onclick="loadSystemAdmin()">Actualiser</button>`;
+  h += fmtEmpty(logs, l => {
+    const b = actionLabels[l.action] || ['b-warn', l.action];
+    return `<div class="list-item"><div><div class="t">${l.description || l.action}</div><div class="s">${l.user_id ? (names[l.user_id] || 'Utilisateur') : 'Système'} · ${new Date(l.created_at).toLocaleString('fr-FR')}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`;
+  });
+  panel.innerHTML = h;
+}
+
+async function savePerms(id){
+  const obj = {};
+  permKeys.forEach(k => { obj[k[0]] = document.getElementById(`perm_${id}_${k[0]}`).checked; });
+  const { error } = await sb.from('administrators').upsert({ id, niveau_admin: 'academique', permissions: obj });
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert("Permissions enregistrées.");
+  loadSystemAdmin();
+}
+
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
 const prBadge = s => ({en_attente:['b-warn','En attente'], valide:['b-ok','Validé'], refuse:['b-bad','Refusé'], annule:['b-bad','Annulé']})[s] || ['b-warn', s];
 
@@ -957,6 +1023,7 @@ async function toggleAlerts(){
   }
 }
 async function logout(){
+  if(currentProfile){ await logEvent('LOGOUT', 'Déconnexion'); }
   await sb.auth.signOut();
   document.getElementById('app').style.display='none';
   document.getElementById('gate').style.display='flex';
