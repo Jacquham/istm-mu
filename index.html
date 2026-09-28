@@ -524,6 +524,8 @@ function enter(profile){
   } else if(profile.role === 'etudiant'){
     loadHomeStudent(profile);
     loadScheduleStudent(profile);
+  } else if(profile.role === 'enseignant'){
+    loadHomeTeacher(profile);
   } else {
     document.getElementById('panel-home').innerHTML = '<div class="note">Tableau de bord en cours de connexion pour ce rôle — reviens bientôt.</div>';
     document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<div class="note">Bientôt disponible.</div>';
@@ -565,6 +567,105 @@ async function loadHomeStudent(profile){
 
   coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
+const jourNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+async function loadHomeTeacher(profile){
+  const [{data:courses},{data:scheds}] = await Promise.all([
+    sb.from('courses').select('id,code,intitule,promotion_id,promotions(nom)').eq('enseignant_responsable_id', profile.id),
+    sb.from('schedules').select('*, courses(intitule), promotions(nom)').eq('teacher_id', profile.id).order('heure_debut')
+  ]);
+  window.__teacherCourses = courses || [];
+  const promoIds = [...new Set((courses||[]).map(c=>c.promotion_id).filter(Boolean))];
+  let nbStudents = 0;
+  if(promoIds.length){
+    const { count } = await sb.from('students').select('*',{count:'exact',head:true}).in('promotion_id', promoIds);
+    nbStudents = count || 0;
+  }
+  const today = jourNames[new Date().getDay()];
+  const todays = (scheds||[]).filter(s => s.jour === today);
+
+  document.getElementById('panel-home').innerHTML = `<h2 class="sec">Mon espace</h2>
+    <div class="grid">
+      <div class="stat"><b>${(courses||[]).length}</b><span>Mes cours</span></div>
+      <div class="stat"><b>${nbStudents}</b><span>Mes étudiants</span></div>
+    </div>
+    <h2 class="sec">Aujourd'hui (${today})</h2>` +
+    fmtEmpty(todays, s => `<div class="list-item"><div><div class="t">${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">${s.promotions?s.promotions.nom:''} · Salle ${s.salle||'—'}</div></div></div>`);
+
+  document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<h2 class="sec">Mes cours (touche pour ouvrir)</h2>' +
+    fmtEmpty(courses, c => `<div class="list-item clickable" onclick="openCourseTeacher('${c.id}')"><div><div class="t">${c.code} — ${c.intitule}</div><div class="s">${c.promotions?c.promotions.nom:'Promotion non assignée'}</div></div></div>`);
+
+  document.getElementById('panel-schedule').innerHTML = '<h2 class="sec">Mon horaire</h2>' +
+    fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${s.jour} ${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">${s.promotions?s.promotions.nom:''} · Salle ${s.salle||'—'}</div></div></div>`);
+}
+
+async function openCourseTeacher(cid){
+  const c = (window.__teacherCourses||[]).find(x => x.id === cid);
+  if(!c) return;
+  document.getElementById('detailName').textContent = c.intitule;
+  document.getElementById('detailRole').textContent = c.promotions ? c.promotions.nom : '';
+  document.getElementById('detailBody').innerHTML = 'Chargement…';
+  document.getElementById('detailOverlay').classList.add('show');
+
+  if(!c.promotion_id){
+    document.getElementById('detailBody').innerHTML = '<div class="note">Ce cours n\'est lié à aucune promotion : demande à l\'administration de l\'assigner.</div>';
+    return;
+  }
+  const { data: studs } = await sb.from('students').select('id,matricule,users:id(nom,prenom)').eq('promotion_id', c.promotion_id);
+  window.__courseStudents = studs || [];
+  const today = new Date().toISOString().slice(0,10);
+  const nameOf = s => `${(s.users&&s.users.nom)||''} ${(s.users&&s.users.prenom)||''}`.trim() || s.matricule;
+
+  let body = `<h2 class="sec">Présences</h2>
+    <input class="mini-input" id="attDate" type="date" value="${today}">`;
+  body += fmtEmpty(studs, s => `<div class="list-item"><div class="t">${nameOf(s)}</div>
+      <select id="att_${s.id}" style="padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
+        <option value="present">Présent</option><option value="absent">Absent</option><option value="retard">Retard</option><option value="justifie">Justifié</option>
+      </select></div>`);
+  if((studs||[]).length) body += `<button class="mini-btn" onclick="saveAttendance('${cid}')">Enregistrer les présences</button>`;
+
+  body += `<h2 class="sec">Notes</h2>
+    <input class="mini-input" id="grIntitule" placeholder="Intitulé (ex: Interrogation 1)">
+    <select class="mini-input" id="grType"><option value="interrogation">Interrogation</option><option value="tp">TP</option><option value="td">TD</option><option value="examen">Examen</option><option value="examen_final">Examen final</option></select>
+    <input class="mini-input" id="grMax" type="number" value="20" placeholder="Note maximale">`;
+  body += fmtEmpty(studs, s => `<div class="list-item"><div class="t">${nameOf(s)}</div>
+      <input id="gr_${s.id}" type="number" step="0.1" placeholder="Note" style="width:80px;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></div>`);
+  if((studs||[]).length) body += `<button class="mini-btn" onclick="saveGradesTeacher('${cid}')">Enregistrer les notes</button>`;
+
+  document.getElementById('detailBody').innerHTML = body;
+}
+
+async function saveAttendance(cid){
+  const date_seance = document.getElementById('attDate').value;
+  if(!date_seance){ alert('Choisis une date.'); return; }
+  const rows = (window.__courseStudents||[]).map(s => ({
+    student_id: s.id, course_id: cid, date_seance,
+    statut: document.getElementById('att_'+s.id).value,
+    recorded_by: currentProfile.id
+  }));
+  const { error } = await sb.from('attendance').upsert(rows, { onConflict: 'student_id,course_id,date_seance' });
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert('Présences enregistrées.');
+}
+
+async function saveGradesTeacher(cid){
+  const intitule = document.getElementById('grIntitule').value.trim();
+  const type_evaluation = document.getElementById('grType').value;
+  const note_max = parseFloat(document.getElementById('grMax').value) || 20;
+  const rows = [];
+  (window.__courseStudents||[]).forEach(s => {
+    const v = document.getElementById('gr_'+s.id).value;
+    if(v !== '' && !isNaN(parseFloat(v))){
+      rows.push({ student_id: s.id, course_id: cid, type_evaluation, intitule, note: parseFloat(v), note_max, recorded_by: currentProfile.id });
+    }
+  });
+  if(!rows.length){ alert('Saisis au moins une note.'); return; }
+  const { error } = await sb.from('grades').insert(rows);
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert(rows.length + ' note(s) enregistrée(s).');
+  openCourseTeacher(cid);
+}
+
 const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
 async function loadScheduleAdmin(){
