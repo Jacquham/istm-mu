@@ -317,7 +317,7 @@ const tabsByRole = {
   admin_central:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["finance","💰","Finances"],["schedule","🗓️","Horaires"],["more","📢","Plus"]],
   admin_academique:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["schedule","🗓️","Horaires"],["more","📢","Plus"]],
   enseignant:[["home","🏠","Accueil"],["courses","📚","Mes cours"],["schedule","🗓️","Horaire"],["more","📢","Plus"]],
-  etudiant:[["home","🏠","Accueil"],["courses","📚","Mes notes"],["schedule","🗓️","Horaire"],["more","📢","Plus"]]
+  etudiant:[["home","🏠","Accueil"],["courses","📚","Mes notes"],["finance","💰","Paiements"],["schedule","🗓️","Horaire"],["more","📢","Plus"]]
 };
 
 function fmtEmpty(rows, render){
@@ -497,14 +497,6 @@ async function validateAccount(id, status){
   loadAccountsAdmin();
 }
 
-async function loadFinanceAdmin(){
-  const { data: rows } = await sb.from('payments').select('type_frais,montant,montant_paye,statut,students:student_id(users:id(nom,prenom))').order('created_at',{ascending:false}).limit(20);
-  const panel = document.querySelector('.tab-panel[data-tab="finance"]');
-  const badge = s => s==='paye' ? 'b-ok' : (s==='partiel' ? 'b-warn' : 'b-bad');
-  let h = '<h2 class="sec">Gestion financière (données réelles)</h2>';
-  h += fmtEmpty(rows, r => `<div class="list-item"><div><div class="t">${r.type_frais}</div><div class="s">${r.montant_paye}/${r.montant} CDF</div></div><span class="badge ${badge(r.statut)}">${r.statut}</span></div>`);
-  panel.innerHTML = h;
-}
 
 function enter(profile){
   document.getElementById('gate').style.display='none';
@@ -524,6 +516,7 @@ function enter(profile){
   } else if(profile.role === 'etudiant'){
     loadHomeStudent(profile);
     loadScheduleStudent(profile);
+    loadFinanceStudent(profile);
   } else if(profile.role === 'enseignant'){
     loadHomeTeacher(profile);
   } else {
@@ -531,6 +524,8 @@ function enter(profile){
     document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<div class="note">Bientôt disponible.</div>';
   }
   loadAnnouncements(profile);
+  loadNotifications(profile);
+  if(!window.__notifTimer){ window.__notifTimer = setInterval(() => { if(currentProfile) loadNotifications(currentProfile); }, 60000); }
 }
 
 async function loadHomeStudent(profile){
@@ -567,6 +562,165 @@ async function loadHomeStudent(profile){
 
   coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
+const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
+const prBadge = s => ({en_attente:['b-warn','En attente'], valide:['b-ok','Validé'], refuse:['b-bad','Refusé'], annule:['b-bad','Annulé']})[s] || ['b-warn', s];
+
+async function loadFinanceAdmin(){
+  const panel = document.querySelector('.tab-panel[data-tab="finance"]');
+  const [{data:contribs},{data:promos},{data:reqs},{data:pays}] = await Promise.all([
+    sb.from('contributions').select('*, promotions(nom)').order('created_at',{ascending:false}),
+    sb.from('promotions').select('id,nom').order('niveau'),
+    sb.from('payment_requests').select('*, contributions(titre,reference)').order('created_at',{ascending:false}).limit(50),
+    sb.from('payments').select('type_frais,montant,montant_paye,statut').order('created_at',{ascending:false}).limit(20)
+  ]);
+  const ids = [...new Set((reqs||[]).map(r => r.student_id))];
+  const names = {};
+  if(ids.length){
+    const { data: us } = await sb.from('users').select('id,nom,prenom').in('id', ids);
+    (us||[]).forEach(u => { names[u.id] = `${u.nom} ${u.prenom}`; });
+  }
+  const pending = (reqs||[]).filter(r => r.statut === 'en_attente');
+  const treated = (reqs||[]).filter(r => r.statut !== 'en_attente').slice(0,10);
+  const promoOptions = (promos||[]).map(p => `<option value="${p.id}">${p.nom}</option>`).join('');
+
+  let h = `<h2 class="sec">Paiements à valider (${pending.length})</h2>`;
+  h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${names[r.student_id]||'Étudiant'} — ${fmtMoney(r.montant)}</div><div class="s">${r.contributions?r.contributions.reference+' '+r.contributions.titre:''} · ${r.mode_paiement||'—'} · réf. ${r.reference_paiement||'—'}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="reviewPayment('${r.id}','valide')">Valider</button>
+        <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="reviewPayment('${r.id}','refuse')">Refuser</button>
+      </div></div>`);
+
+  h += `<h2 class="sec">Contributions</h2>`;
+  h += fmtEmpty(contribs, c => `<div class="list-item"><div><div class="t">${c.reference||''} — ${c.titre}</div><div class="s">${fmtMoney(c.montant)} · ${c.promotions?c.promotions.nom:'Toutes les promotions'}${c.date_limite?' · limite '+new Date(c.date_limite).toLocaleDateString('fr-FR'):''}</div></div></div>`);
+  h += `<input class="mini-input" id="ctTitre" placeholder="Titre (ex: Activité de la Section)">
+    <input class="mini-input" id="ctDesc" placeholder="Description / motif">
+    <input class="mini-input" id="ctMontant" type="number" placeholder="Montant demandé (CDF)">
+    <input class="mini-input" id="ctLimite" type="date">
+    <select class="mini-input" id="ctPromo"><option value="">Toutes les promotions</option>${promoOptions}</select>
+    <input class="mini-input" id="ctInstr" placeholder="Instructions de paiement (ex: numéro Mobile Money)">
+    <button class="mini-btn" onclick="addContribution()">Créer la contribution</button>`;
+
+  h += `<h2 class="sec">Derniers paiements traités</h2>`;
+  h += fmtEmpty(treated, r => { const b = prBadge(r.statut); return `<div class="list-item"><div><div class="t">${names[r.student_id]||'Étudiant'} — ${fmtMoney(r.montant)}</div><div class="s">${r.contributions?r.contributions.titre:''}${r.motif_refus?' · '+r.motif_refus:''}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`; });
+
+  h += `<h2 class="sec">Paiements enregistrés manuellement</h2>`;
+  const badge = s => s==='paye' ? 'b-ok' : (s==='partiel' ? 'b-warn' : 'b-bad');
+  h += fmtEmpty(pays, r => `<div class="list-item"><div><div class="t">${r.type_frais}</div><div class="s">${r.montant_paye}/${r.montant} CDF</div></div><span class="badge ${badge(r.statut)}">${r.statut}</span></div>`);
+  panel.innerHTML = h;
+}
+
+async function addContribution(){
+  const titre = document.getElementById('ctTitre').value.trim();
+  const description = document.getElementById('ctDesc').value.trim();
+  const montant = parseFloat(document.getElementById('ctMontant').value);
+  const date_limite = document.getElementById('ctLimite').value || null;
+  const promotion_id = document.getElementById('ctPromo').value || null;
+  const instructions = document.getElementById('ctInstr').value.trim();
+  if(!titre || isNaN(montant) || montant <= 0){ alert("Titre et montant (supérieur à 0) requis."); return; }
+  const { error } = await sb.from('contributions').insert({ titre, description, montant, date_limite, promotion_id, instructions, created_by: currentProfile.id });
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert("Contribution créée.");
+  loadFinanceAdmin();
+}
+
+async function reviewPayment(id, action){
+  const patch = { statut: action, validated_by: currentProfile.id, validated_at: new Date().toISOString() };
+  if(action === 'refuse'){
+    const motif = prompt("Motif du refus :");
+    if(motif === null) return;
+    patch.motif_refus = motif;
+  }
+  const { error } = await sb.from('payment_requests').update(patch).eq('id', id);
+  if(error){ alert("Erreur : " + error.message); return; }
+  loadFinanceAdmin();
+}
+
+async function loadFinanceStudent(profile){
+  const panel = document.querySelector('.tab-panel[data-tab="finance"]');
+  const { data: stu } = await sb.from('students').select('promotion_id').eq('id', profile.id).maybeSingle();
+  if(!stu){ panel.innerHTML = `<div class="note">Ton dossier académique n'est pas encore complété : les contributions apparaîtront ensuite.</div>`; return; }
+  const [{data:contribs},{data:reqs}] = await Promise.all([
+    sb.from('contributions').select('*').eq('statut','active').order('created_at',{ascending:false}),
+    sb.from('payment_requests').select('*, contributions(titre,reference)').eq('student_id', profile.id).order('created_at',{ascending:false})
+  ]);
+  const mine = (contribs||[]).filter(c => !c.promotion_id || c.promotion_id === stu.promotion_id);
+  window.__myContribs = mine;
+  window.__myReqs = reqs || [];
+  let h = `<h2 class="sec">Contributions (touche pour payer)</h2>`;
+  h += fmtEmpty(mine, c => {
+    const paid = studentPaid(c.id);
+    const solde = Number(c.montant) - paid;
+    return `<div class="list-item clickable" onclick="openContribution('${c.id}')"><div><div class="t">${c.reference||''} — ${c.titre}</div><div class="s">Demandé ${fmtMoney(c.montant)} · Payé ${fmtMoney(paid)}${c.date_limite?' · limite '+new Date(c.date_limite).toLocaleDateString('fr-FR'):''}</div></div><span class="badge ${solde<=0?'b-ok':'b-warn'}">${solde<=0?'Soldée':'Solde '+fmtMoney(solde)}</span></div>`;
+  });
+  h += `<h2 class="sec">Mes paiements envoyés</h2>`;
+  h += fmtEmpty(reqs, r => { const b = prBadge(r.statut); return `<div class="list-item"><div><div class="t">${fmtMoney(r.montant)} — ${r.contributions?r.contributions.titre:''}</div><div class="s">${new Date(r.created_at).toLocaleDateString('fr-FR')}${r.motif_refus?' · Motif : '+r.motif_refus:''}</div></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span class="badge ${b[0]}">${b[1]}</span>${r.statut==='en_attente'?`<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:5px 8px;font-size:11px;" onclick="cancelPayment('${r.id}')">Annuler</button>`:''}</div></div>`; });
+  panel.innerHTML = h;
+}
+
+function studentPaid(cid){
+  return (window.__myReqs||[]).filter(r => r.contribution_id === cid && r.statut === 'valide').reduce((s,r) => s + Number(r.montant), 0);
+}
+
+function openContribution(cid){
+  const c = (window.__myContribs||[]).find(x => x.id === cid);
+  if(!c) return;
+  const paid = studentPaid(cid);
+  const solde = Number(c.montant) - paid;
+  document.getElementById('detailName').textContent = c.titre;
+  document.getElementById('detailRole').textContent = `Contribution ${c.reference||''}`;
+  let body = `<h2 class="sec">Détails</h2>
+    <div class="list-item"><div><div class="t">Montant demandé</div><div class="s">${fmtMoney(c.montant)}</div></div></div>
+    <div class="list-item"><div><div class="t">Déjà payé (validé)</div><div class="s">${fmtMoney(paid)}</div></div></div>
+    <div class="list-item"><div><div class="t">Solde</div><div class="s">${fmtMoney(Math.max(solde,0))}</div></div></div>
+    <div class="list-item"><div><div class="t">Date limite</div><div class="s">${c.date_limite?new Date(c.date_limite).toLocaleDateString('fr-FR'):'—'}</div></div></div>
+    <div class="list-item"><div><div class="t">Motif</div><div class="s">${c.description||'—'}</div></div></div>
+    <div class="list-item"><div><div class="t">Instructions de paiement</div><div class="s">${c.instructions||'—'}</div></div></div>`;
+  if(solde <= 0){
+    body += `<div class="note">Cette contribution est soldée.</div>`;
+  } else {
+    body += `<h2 class="sec">Envoyer un paiement</h2>
+      <input class="mini-input" id="pmMontant" type="number" placeholder="Montant versé (CDF)">
+      <select class="mini-input" id="pmMode"><option>Mobile Money</option><option>Espèces</option><option>Banque</option><option>Autre</option></select>
+      <input class="mini-input" id="pmRef" placeholder="Référence de la transaction">
+      <div class="note">Le paiement sera considéré comme payé seulement après vérification et validation par l'administration.</div>
+      <button class="mini-btn" style="margin-top:10px;" onclick="submitPayment('${c.id}')">Envoyer pour validation</button>`;
+  }
+  document.getElementById('detailBody').innerHTML = body;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+
+async function submitPayment(cid){
+  const montant = parseFloat(document.getElementById('pmMontant').value);
+  const mode_paiement = document.getElementById('pmMode').value;
+  const reference_paiement = document.getElementById('pmRef').value.trim();
+  if(isNaN(montant) || montant <= 0){ alert("Saisis un montant valide."); return; }
+  if(!reference_paiement){ alert("Saisis la référence de la transaction."); return; }
+  const { error } = await sb.from('payment_requests').insert({ contribution_id: cid, student_id: currentProfile.id, montant, mode_paiement, reference_paiement });
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert("Paiement envoyé. Il est en attente de validation par l'administration.");
+  closeDetail();
+  loadFinanceStudent(currentProfile);
+}
+
+async function cancelPayment(id){
+  if(!confirm("Annuler ce paiement ?")) return;
+  const { error } = await sb.from('payment_requests').update({ statut: 'annule' }).eq('id', id);
+  if(error){ alert("Erreur : " + error.message); return; }
+  loadFinanceStudent(currentProfile);
+}
+
+async function loadNotifications(profile){
+  const { data } = await sb.from('notifications').select('*').eq('user_id', profile.id).order('created_at',{ascending:false}).limit(20);
+  const list = data || [];
+  const unread = list.filter(n => !n.is_read).length;
+  document.getElementById('alertDot').style.display = unread ? 'block' : 'none';
+  const rows = list.length
+    ? list.map(n => `<div class="row">${n.is_read?'':'🔵 '}<b>${n.titre}</b><br><span style="color:var(--muted)">${n.message||''}</span><br><span style="color:var(--muted);font-size:11px">${new Date(n.created_at).toLocaleString('fr-FR')}</span></div>`).join('')
+    : `<div class="row">Aucune notification.</div>`;
+  document.getElementById('alertsPanel').innerHTML = `<h3>Notifications</h3>${rows}<button class="close" onclick="toggleAlerts()">Fermer</button>`;
+}
+
 const jourNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
 async function loadHomeTeacher(profile){
@@ -794,9 +948,13 @@ function showTab(name, btn){
   document.querySelectorAll('#tabsNav button').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
 }
-function toggleAlerts(){
-  document.getElementById('alertsPanel').classList.toggle('hidden');
-  document.getElementById('alertDot').style.display='none';
+async function toggleAlerts(){
+  const p = document.getElementById('alertsPanel');
+  p.classList.toggle('hidden');
+  if(!p.classList.contains('hidden') && currentProfile){
+    await sb.from('notifications').update({ is_read: true }).eq('user_id', currentProfile.id).eq('is_read', false);
+    document.getElementById('alertDot').style.display = 'none';
+  }
 }
 async function logout(){
   await sb.auth.signOut();
