@@ -84,6 +84,9 @@ header.topbar .right{display:flex;align-items:center;gap:8px;}
 .clickable{cursor:pointer;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SB_URL = "https://jktltzixjgltishvqotk.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprdGx0eml4amdsdGlzaHZxb3RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNzU2NDIsImV4cCI6MjEwNTg1MTY0Mn0.RmoVcq_Kyf8Z2T5A_2zGxOQeAabQtSVrc25ubhl8nKw";
@@ -198,6 +201,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <div class="list-item"><div><div class="t">MUAMBA Divin</div><div class="s">Frais d'examen L3 · réf. PMT-0227</div></div><span class="badge b-ok">Payé</span></div>
     </div>
 
+    <div class="tab-panel" data-tab="reports" id="panel-reports"></div>
     <div class="tab-panel" data-tab="system" id="panel-system"><div class="note">Chargement…</div></div>
     <div class="tab-panel" data-tab="schedule" id="panel-schedule">
       <div class="note">Chargement…</div>
@@ -317,7 +321,7 @@ async function doChangePassword(){
 const roleLabels = { admin_central:"Administrateur central", admin_academique:"Administrateur académique", enseignant:"Enseignant", etudiant:"Étudiant" };
 const tabsByRole = {
   admin_central:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["finance","💰","Finances"],["schedule","🗓️","Horaires"],["more","📢","Plus"],["system","⚙️","Système"]],
-  admin_academique:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["schedule","🗓️","Horaires"],["more","📢","Plus"]],
+  admin_academique:[["home","🏠","Accueil"],["accounts","🗂️","Comptes"],["schedule","🗓️","Horaires"],["reports","📄","Rapports"],["more","📢","Plus"]],
   enseignant:[["home","🏠","Accueil"],["courses","📚","Mes cours"],["schedule","🗓️","Horaire"],["more","📢","Plus"]],
   etudiant:[["home","🏠","Accueil"],["courses","📚","Mes notes"],["finance","💰","Paiements"],["schedule","🗓️","Horaire"],["more","📢","Plus"]]
 };
@@ -516,6 +520,7 @@ function enter(profile){
     if(tabs.some(t=>t[0]==='finance')) loadFinanceAdmin();
     loadScheduleAdmin();
     if(profile.role==='admin_central') loadSystemAdmin();
+    if(profile.role==='admin_academique') loadReportsPanel();
   } else if(profile.role === 'etudiant'){
     loadHomeStudent(profile);
     loadScheduleStudent(profile);
@@ -582,7 +587,8 @@ async function logEvent(action, description){
 
 async function loadSystemAdmin(){
   const panel = document.getElementById('panel-system');
-  const [{data:admins},{data:logs}] = await Promise.all([
+  const [{data:promos},{data:admins},{data:logs}] = await Promise.all([
+    sb.from('promotions').select('id,nom').order('niveau'),
     sb.from('users').select('id,nom,prenom').eq('role','admin_academique').eq('compte_status','valide'),
     sb.from('audit_logs').select('*').order('created_at',{ascending:false}).limit(60)
   ]);
@@ -599,7 +605,7 @@ async function loadSystemAdmin(){
     (us||[]).forEach(u => { names[u.id] = `${u.nom} ${u.prenom}`; });
   }
 
-  let h = `<h2 class="sec">Administrateurs et permissions</h2>`;
+  let h = reportsSection(promos) + `<h2 class="sec">Administrateurs et permissions</h2>`;
   if(!(admins||[]).length){
     h += `<div class="note">Aucun administrateur secondaire validé pour le moment. Une personne inscrite comme « Personnel administratif » apparaît ici une fois son compte validé.</div>`;
   } else {
@@ -734,6 +740,253 @@ async function deleteOperation(id){
   if(error){ alert("Erreur : " + error.message); return; }
   if(!data || !data.length){ alert("Suppression refusée : réservée à l'administrateur central."); return; }
   loadCaisse();
+}
+
+// ================= RAPPORTS PDF / EXCEL =================
+async function fetchAll(makeQuery){
+  let all = [], from = 0;
+  while(true){
+    const { data, error } = await makeQuery().range(from, from + 999);
+    if(error) throw error;
+    all = all.concat(data || []);
+    if(!data || data.length < 1000) break;
+    from += 1000;
+  }
+  return all;
+}
+
+const numPdf = v => Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 }).replace(/[\u202f\u00a0]/g, ' ');
+const money = v => numPdf(v) + ' CDF';
+const statutInscLabels = { en_attente:'En attente', validee:'Validée', rejetee:'Rejetée', suspendue:'Suspendue' };
+const statutPayLabels = { en_attente:'En attente', valide:'Validé', refuse:'Refusé', annule:'Annulé' };
+
+async function getStudents(promoId){
+  const rows = await fetchAll(() => {
+    let q = sb.from('students').select('id,matricule,sexe,statut_inscription,promotion_id,promotions(nom),users:id(nom,postnom,prenom,telephone)').order('id');
+    if(promoId) q = q.eq('promotion_id', promoId);
+    return q;
+  });
+  return rows.map(s => ({ ...s, nomComplet: [s.users && s.users.nom, s.users && s.users.postnom, s.users && s.users.prenom].filter(Boolean).join(' ') || s.matricule }))
+             .sort((a,b) => a.nomComplet.localeCompare(b.nomComplet, 'fr'));
+}
+
+async function repEtudiants(f){
+  const studs = await getStudents(f.promo);
+  const g = studs.filter(s => s.sexe === 'M').length, fl = studs.filter(s => s.sexe === 'F').length;
+  return {
+    title: 'Liste des étudiants', sheet: 'Etudiants',
+    columns: ['N°','Matricule','Nom complet','Sexe','Promotion','Téléphone','Statut'],
+    rows: studs.map((s,i) => [i+1, s.matricule, s.nomComplet, s.sexe || '-', s.promotions ? s.promotions.nom : '-', (s.users && s.users.telephone) || '-', statutInscLabels[s.statut_inscription] || s.statut_inscription || '-']),
+    summary: [`Total : ${studs.length} étudiant(s) - ${g} garçon(s), ${fl} fille(s)`]
+  };
+}
+
+async function repResultats(f){
+  const studs = await getStudents(f.promo);
+  const ids = new Set(studs.map(s => s.id));
+  const grades = await fetchAll(() => sb.from('grades').select('id,student_id,note,note_max').order('id'));
+  const acc = {};
+  grades.forEach(gr => {
+    if(!ids.has(gr.student_id) || !(Number(gr.note_max) > 0)) return;
+    const a = acc[gr.student_id] || (acc[gr.student_id] = { sum: 0, n: 0 });
+    a.sum += Number(gr.note) / Number(gr.note_max) * 20; a.n++;
+  });
+  const list = studs.map(s => { const a = acc[s.id]; return { s, n: a ? a.n : 0, moy: a ? Math.round(a.sum / a.n * 100) / 100 : null }; });
+  list.sort((x,y) => (y.moy === null ? -1 : y.moy) - (x.moy === null ? -1 : x.moy));
+  let rang = 0;
+  const rows = list.map(x => {
+    if(x.moy !== null) rang++;
+    return [x.moy !== null ? rang : '-', x.s.matricule, x.s.nomComplet, x.n, x.moy !== null ? x.moy : '-', x.moy === null ? '-' : (x.moy >= 10 ? 'Réussite' : 'Ajourné')];
+  });
+  const withMoy = list.filter(x => x.moy !== null);
+  return {
+    title: 'Résultats des étudiants', sheet: 'Resultats',
+    columns: ['Rang','Matricule','Nom complet','Nb évaluations','Moyenne /20','Décision'],
+    rows,
+    summary: [`${withMoy.length} étudiant(s) évalué(s) sur ${studs.length} - ${withMoy.filter(x => x.moy >= 10).length} en réussite`,
+              'Moyenne simple de toutes les évaluations ramenées sur 20 (sans pondération par crédits).']
+  };
+}
+
+async function repPresences(f){
+  const studs = await getStudents(f.promo);
+  const ids = new Set(studs.map(s => s.id));
+  const att = await fetchAll(() => sb.from('attendance').select('id,student_id,statut').order('id'));
+  const acc = {};
+  att.forEach(a => {
+    if(!ids.has(a.student_id)) return;
+    const c = acc[a.student_id] || (acc[a.student_id] = { total: 0, present: 0, absent: 0, retard: 0, justifie: 0 });
+    c.total++; if(c[a.statut] !== undefined) c[a.statut]++;
+  });
+  let T = 0, P = 0;
+  const rows = studs.map(s => {
+    const c = acc[s.id];
+    if(!c) return [s.matricule, s.nomComplet, 0, 0, 0, 0, 0, '-'];
+    T += c.total; P += c.present;
+    return [s.matricule, s.nomComplet, c.total, c.present, c.absent, c.retard, c.justifie, Math.round(c.present / c.total * 100)];
+  });
+  return {
+    title: 'Rapport de présence', sheet: 'Presences',
+    columns: ['Matricule','Nom complet','Séances','Présent','Absent','Retard','Justifié','Taux %'],
+    rows,
+    summary: [`Taux de présence moyen : ${T ? Math.round(P / T * 100) : 0} %`, 'Taux = présences / nombre de séances enregistrées.']
+  };
+}
+
+async function repPaiements(f){
+  const studs = await getStudents(f.promo);
+  const map = {}; studs.forEach(s => { map[s.id] = s; });
+  const reqs = await fetchAll(() => sb.from('payment_requests').select('id,student_id,montant,mode_paiement,reference_paiement,statut,created_at,contributions(titre,reference)').order('created_at',{ascending:false}));
+  const list = reqs.filter(r => !f.promo || map[r.student_id]);
+  const tot = st => list.filter(r => r.statut === st).reduce((s,r) => s + Number(r.montant), 0);
+  return {
+    title: 'Paiements des contributions', sheet: 'Paiements',
+    columns: ['Date','Étudiant','Contribution','Montant','Mode','Référence','Statut'],
+    rows: list.map(r => [new Date(r.created_at).toLocaleDateString('fr-FR'), map[r.student_id] ? map[r.student_id].nomComplet : '-', r.contributions ? `${r.contributions.reference || ''} ${r.contributions.titre}`.trim() : '-', Number(r.montant), r.mode_paiement || '-', r.reference_paiement || '-', statutPayLabels[r.statut] || r.statut]),
+    summary: [`Total validé : ${money(tot('valide'))}`, `En attente de validation : ${money(tot('en_attente'))}`]
+  };
+}
+
+async function repDebiteurs(f){
+  const studs = await getStudents(f.promo);
+  const contribs = await fetchAll(() => sb.from('contributions').select('id,reference,titre,montant,promotion_id').eq('statut','active').order('id'));
+  const paid = await fetchAll(() => sb.from('payment_requests').select('id,contribution_id,student_id,montant').eq('statut','valide').order('id'));
+  const pm = {}; paid.forEach(p => { const k = p.contribution_id + '|' + p.student_id; pm[k] = (pm[k] || 0) + Number(p.montant); });
+  const rows = []; const debt = new Set(); let totalDu = 0;
+  studs.forEach(s => contribs.forEach(c => {
+    if(c.promotion_id && c.promotion_id !== s.promotion_id) return;
+    const p = pm[c.id + '|' + s.id] || 0, solde = Number(c.montant) - p;
+    if(solde > 0){ rows.push([s.nomComplet, s.matricule, s.promotions ? s.promotions.nom : '-', `${c.reference || ''} ${c.titre}`.trim(), Number(c.montant), p, solde]); debt.add(s.id); totalDu += solde; }
+  }));
+  return {
+    title: 'Liste des débiteurs', sheet: 'Debiteurs',
+    columns: ['Étudiant','Matricule','Promotion','Contribution','Demandé','Payé','Solde'],
+    rows,
+    summary: [`${debt.size} étudiant(s) débiteur(s) - Total dû : ${money(totalDu)}`]
+  };
+}
+
+async function repCaisse(f){
+  let ops = await fetchAll(() => sb.from('finance_operations').select('*').order('id'));
+  const today = localToday();
+  if(f.period === 'mois') ops = ops.filter(o => o.date_operation.startsWith(today.slice(0,7)));
+  if(f.period === 'annee') ops = ops.filter(o => o.date_operation.startsWith(today.slice(0,4)));
+  if(f.period === 'plage'){
+    if(f.from) ops = ops.filter(o => o.date_operation >= f.from);
+    if(f.to) ops = ops.filter(o => o.date_operation <= f.to);
+  }
+  ops.sort((a,b) => a.date_operation.localeCompare(b.date_operation));
+  const r = ops.filter(o => o.type === 'recette').reduce((s,o) => s + Number(o.montant), 0);
+  const d = ops.filter(o => o.type === 'depense').reduce((s,o) => s + Number(o.montant), 0);
+  const label = { tout:'Toutes les opérations', mois:'Ce mois', annee:'Cette année', plage:`Du ${f.from || '...'} au ${f.to || '...'}` }[f.period];
+  return {
+    title: 'Rapport financier - Caisse du bureau', sheet: 'Caisse', filters: `Période : ${label}`,
+    columns: ['N°','Date','Type','Catégorie','Motif','Montant'],
+    rows: ops.map(o => [o.numero || '', new Date(o.date_operation).toLocaleDateString('fr-FR'), o.type === 'recette' ? 'Recette' : 'Dépense', o.categorie || '-', o.motif, Number(o.montant)]),
+    summary: [`Total recettes : ${money(r)}`, `Total dépenses : ${money(d)}`, `Solde : ${money(r - d)}`],
+    numCols: [5], skipPromoFilter: true
+  };
+}
+
+const REPORTS = {
+  etudiants: ['Liste des étudiants', repEtudiants],
+  resultats: ['Résultats (moyennes et décisions)', repResultats],
+  presences: ['Présences', repPresences],
+  paiements: ['Paiements des contributions', repPaiements],
+  debiteurs: ['Liste des débiteurs', repDebiteurs],
+  caisse: ['Rapport financier (caisse du bureau)', repCaisse]
+};
+
+function reportsSection(promos){
+  const opts = Object.keys(REPORTS).map(k => `<option value="${k}">${REPORTS[k][0]}</option>`).join('');
+  const po = (promos || []).map(p => `<option value="${p.id}">${p.nom}</option>`).join('');
+  const cap = 'font-size:11.5px;color:var(--muted);display:block;margin:2px 0 4px;';
+  return `<h2 class="sec">Rapports (PDF / Excel)</h2>
+    <select class="mini-input" id="repType">${opts}</select>
+    <label style="${cap}">Promotion (rapports sur les étudiants)</label>
+    <select class="mini-input" id="repPromo"><option value="">Toutes les promotions</option>${po}</select>
+    <label style="${cap}">Période (rapport financier)</label>
+    <select class="mini-input" id="repPeriod"><option value="tout">Toutes les opérations</option><option value="mois">Ce mois</option><option value="annee">Cette année</option><option value="plage">Plage de dates</option></select>
+    <label style="${cap}">Du</label><input class="mini-input" id="repFrom" type="date">
+    <label style="${cap}">Au</label><input class="mini-input" id="repTo" type="date">
+    <div style="display:flex;gap:8px;"><button class="mini-btn" onclick="runReport('pdf')">Télécharger PDF</button><button class="mini-btn" onclick="runReport('xlsx')">Télécharger Excel</button></div>
+    <div id="repStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></div>`;
+}
+
+async function loadReportsPanel(){
+  const { data: promos } = await sb.from('promotions').select('id,nom').order('niveau');
+  document.getElementById('panel-reports').innerHTML = reportsSection(promos);
+}
+
+function pdfCell(v){ return typeof v === 'number' ? numPdf(v) : String(v === null || v === undefined ? '' : v); }
+
+function exportPdf(rep, fname){
+  const { jsPDF } = window.jspdf;
+  const landscape = rep.columns.length >= 7;
+  const doc = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+  try { const img = document.querySelector('#gate .logo img'); if(img) doc.addImage(img.src, 'JPEG', 14, 10, 17, 17); } catch(e) {}
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('ISTM-TSHIKAPA', 35, 15);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text('Section Sciences Infirmières', 35, 20);
+  doc.text("Médecine d'Urgence - Anesthésie-Réanimation", 35, 25);
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text(rep.title, 14, 37);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  const now = new Date();
+  let y = 43;
+  const meta = [`Généré le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} par ${currentProfile.prenom} ${currentProfile.nom}`];
+  if(rep.filters) meta.push(rep.filters);
+  meta.concat(rep.summary || []).forEach(line => { doc.text(doc.splitTextToSize(line, pw - 28), 14, y); y += 5; });
+  const colStyles = {}; (rep.numCols || []).forEach(i => { colStyles[i] = { halign: 'right' }; });
+  doc.autoTable({
+    startY: y + 2, head: [rep.columns], body: rep.rows.map(r => r.map(pdfCell)),
+    styles: { fontSize: 8, cellPadding: 1.8 }, headStyles: { fillColor: [11, 61, 100] },
+    columnStyles: colStyles, margin: { left: 14, right: 14, bottom: 14 }
+  });
+  const n = doc.internal.getNumberOfPages();
+  for(let i = 1; i <= n; i++){ doc.setPage(i); doc.setFontSize(8); doc.text(`Page ${i}/${n}`, pw - 14, ph - 7, { align: 'right' }); }
+  doc.save(fname + '.pdf');
+}
+
+function exportXlsx(rep, fname){
+  const now = new Date();
+  const aoa = [[rep.title], [`Généré le ${now.toLocaleDateString('fr-FR')} par ${currentProfile.prenom} ${currentProfile.nom}`]];
+  if(rep.filters) aoa.push([rep.filters]);
+  (rep.summary || []).forEach(s => aoa.push([s]));
+  aoa.push([]); aoa.push(rep.columns);
+  rep.rows.forEach(r => aoa.push(r));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = rep.columns.map((c, i) => ({ wch: Math.min(45, Math.max(String(c).length, ...rep.rows.map(r => String(r[i] === undefined || r[i] === null ? '' : r[i]).length)) + 2) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, (rep.sheet || 'Rapport').slice(0, 31));
+  XLSX.writeFile(wb, fname + '.xlsx');
+}
+
+async function runReport(format){
+  const status = document.getElementById('repStatus');
+  const key = document.getElementById('repType').value;
+  const f = {
+    promo: document.getElementById('repPromo').value || null,
+    period: document.getElementById('repPeriod').value,
+    from: document.getElementById('repFrom').value, to: document.getElementById('repTo').value
+  };
+  if(format === 'pdf' && !(window.jspdf && window.jspdf.jsPDF)){ alert("Le module PDF n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
+  if(format === 'xlsx' && !window.XLSX){ alert("Le module Excel n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
+  status.textContent = 'Préparation du rapport…';
+  try {
+    const rep = await REPORTS[key][1](f);
+    if(!rep.rows.length){ status.textContent = ''; alert("Aucune donnée pour ce rapport (ou permission insuffisante)."); return; }
+    if(f.promo && !rep.skipPromoFilter){
+      const sel = document.getElementById('repPromo');
+      rep.filters = `Promotion : ${sel.options[sel.selectedIndex].text}`;
+    }
+    const fname = `ISTM-MU_${key}_${localToday()}`;
+    if(format === 'pdf') exportPdf(rep, fname); else exportXlsx(rep, fname);
+    status.textContent = `Rapport « ${REPORTS[key][0]} » généré : ${rep.rows.length} ligne(s).`;
+  } catch(e) {
+    status.textContent = '';
+    alert("Erreur lors de la génération : " + (e && e.message ? e.message : e));
+  }
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
