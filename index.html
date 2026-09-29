@@ -211,6 +211,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
     <div class="tab-panel" data-tab="more">
       <div id="messagesSection"></div>
       <div id="documentsSection"></div>
+      <div id="materialsSection"></div>
       <div id="teacherStages"></div>
       <div id="studentStage"></div>
       <div id="palmaresSection"></div>
@@ -338,24 +339,51 @@ function fmtEmpty(rows, render){
 }
 
 async function loadHomeAdmin(){
-  const [stu, tea, pro, pending] = await Promise.all([
-    sb.from('students').select('*', { count:'exact', head:true }),
-    sb.from('teachers').select('*', { count:'exact', head:true }),
-    sb.from('promotions').select('*', { count:'exact', head:true }),
-    sb.from('students').select('id,users:id(nom,prenom)').eq('statut_inscription','en_attente').limit(10)
+  const me = currentProfile.id;
+  const d = new Date();
+  const monthStart = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-01';
+  const cnt = q => q.then(r => (r && !r.error) ? (r.count ?? 0) : null).catch(() => null);
+  const [nbStu, nbTea, nbPro, attTotal, attPresent, nbUnread, nbPay, pendingRes, opsRes] = await Promise.all([
+    cnt(sb.from('students').select('*', { count:'exact', head:true })),
+    cnt(sb.from('teachers').select('*', { count:'exact', head:true })),
+    cnt(sb.from('promotions').select('*', { count:'exact', head:true })),
+    cnt(sb.from('attendance').select('*', { count:'exact', head:true })),
+    cnt(sb.from('attendance').select('*', { count:'exact', head:true }).eq('statut','present')),
+    cnt(sb.from('messages').select('*', { count:'exact', head:true }).eq('is_read', false).neq('sender_id', me).or('recipient_id.eq.' + me + ',recipient_id.is.null')),
+    cnt(sb.from('payment_requests').select('*', { count:'exact', head:true }).eq('statut','en_attente')),
+    sb.from('users').select('id,nom,prenom,role,code_id,created_at').eq('compte_status','en_attente').order('created_at',{ascending:true}).limit(10),
+    sb.from('finance_operations').select('type,montant').gte('date_operation', monthStart)
   ]);
-  const nbStu = stu.count ?? 0, nbTea = tea.count ?? 0, nbPro = pro.count ?? 0;
-  let html = `<h2 class="sec">Vue d'ensemble (données réelles)</h2>
+  const pending = (pendingRes && pendingRes.data) || [];
+  const taux = (attTotal && attPresent !== null) ? Math.round(100 * attPresent / attTotal) + ' %' : '—';
+  let solde = '—';
+  if(opsRes && !opsRes.error && opsRes.data){
+    solde = fmtMoney(opsRes.data.reduce((s,o) => s + (o.type === 'recette' ? 1 : -1) * Number(o.montant||0), 0));
+  }
+  const tile = (v, label) => `<div class="stat"><b>${v ?? '—'}</b><span>${label}</span></div>`;
+  let html = `<h2 class="sec">Vue d'ensemble</h2>
     <div class="grid">
-      <div class="stat"><b>${nbStu}</b><span>Étudiants inscrits</span></div>
-      <div class="stat"><b>${nbTea}</b><span>Enseignants</span></div>
-      <div class="stat"><b>${nbPro}</b><span>Promotions</span></div>
-      <div class="stat"><b>—</b><span>Taux de présence (à venir)</span></div>
+      ${tile(nbStu, 'Étudiants inscrits')}
+      ${tile(nbTea, 'Enseignants')}
+      ${tile(nbPro, 'Promotions')}
+      ${tile(taux, 'Taux de présence')}
+      ${tile(pending.length, 'Comptes à valider')}
+      ${tile(nbPay, 'Paiements à valider')}
+      ${tile(nbUnread, 'Messages non lus')}
+      ${tile(solde, 'Solde caisse (ce mois)')}
     </div>
-    <h2 class="sec">Inscriptions en attente</h2>`;
-  const rows = (pending.data || []);
-  html += fmtEmpty(rows, r => `<div class="list-item"><div><div class="t">${esc((r.users&&r.users.nom)||'Étudiant')}</div><div class="s">Demande d'inscription</div></div><span class="badge b-warn">À valider</span></div>`);
+    <h2 class="sec">Comptes en attente de validation</h2>`;
+  html += pending.length ? pending.map(r => `<div class="list-item"><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${r.code_id ? esc(r.code_id) + ' · ' : ''}${esc(roleLabels[r.role]||r.role)} · demande du ${new Date(r.created_at).toLocaleDateString('fr-FR')}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateFromHome('${r.id}','valide')">Valider</button>
+        <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateFromHome('${r.id}','refuse')">Refuser</button>
+      </div></div>`).join('')
+    : '<div class="note">Aucun compte en attente.</div>';
   document.getElementById('panel-home').innerHTML = html;
+}
+async function validateFromHome(id, status){
+  await validateAccount(id, status);
+  loadHomeAdmin();
 }
 
 async function loadAccountsAdmin(){
@@ -521,7 +549,7 @@ function enter(profile){
   const nav = document.getElementById('tabsNav');
   nav.innerHTML = tabs.map((t,i)=>`<button data-tab="${t[0]}" class="${i===0?'active':''}" onclick="showTab('${t[0]}',this)"><span class="ic">${t[1]}</span>${t[2]}</button>`).join('');
   showTab('home', nav.querySelector('button'));
-  document.getElementById('footNote').textContent = "Application connectée à la base réelle ISTM-MU.";
+  document.getElementById('footNote').style.display = 'none';
   if(profile.role==='admin_central' || profile.role==='admin_academique'){
     loadHomeAdmin();
     if(tabs.some(t=>t[0]==='accounts')) loadAccountsAdmin();
@@ -544,6 +572,7 @@ function enter(profile){
   loadPalmares(profile);
   loadMessages(profile);
   loadDocuments(profile);
+  loadMaterials(profile);
   loadNotifications(profile);
   if(window.__justLoggedIn){ window.__justLoggedIn = false; logEvent('LOGIN', 'Connexion'); }
   if(!window.__notifTimer){ window.__notifTimer = setInterval(() => { if(currentProfile) loadNotifications(currentProfile); }, 60000); }
@@ -1423,6 +1452,96 @@ async function deleteDocument(id){
   if(error){ alert("Erreur : " + error.message); return; }
   if(d && d.file_path) await sb.storage.from('documents-officiels').remove([d.file_path]);
   loadDocuments(currentProfile);
+}
+
+// ================= SUPPORTS DE COURS =================
+async function loadMaterials(profile){
+  const el = document.getElementById('materialsSection');
+  if(!el) return;
+  const isAdmin = profile.role === 'admin_central' || profile.role === 'admin_academique';
+  const canPublish = isAdmin || profile.role === 'enseignant';
+  if(!canPublish && profile.role !== 'etudiant'){ el.innerHTML = ''; return; }
+
+  const { data, error } = await sb.from('course_materials')
+    .select('*, courses(code,intitule), promotions(nom), users:created_by(nom,prenom)')
+    .order('created_at',{ascending:false}).limit(60);
+  if(error){ el.innerHTML = `<h2 class="sec">Supports de cours</h2><div class="note">Impossible de charger les supports : ${esc(error.message)}</div>`; return; }
+  const list = data || [];
+
+  let h = '<h2 class="sec">Supports de cours</h2>';
+  if(canPublish){
+    let coursesQ = sb.from('courses').select('id,code,intitule,promotion_id').order('code');
+    if(profile.role === 'enseignant') coursesQ = coursesQ.eq('enseignant_responsable_id', profile.id);
+    const [{ data: courses }, { data: promos }] = await Promise.all([ coursesQ, sb.from('promotions').select('id,nom').order('niveau') ]);
+    window.__matCourses = courses || [];
+    h += `<input class="mini-input" id="matTitre" placeholder="Titre du module / support">
+      <select class="mini-input" id="matCourse" onchange="onMatCourse()"><option value="">— Cours concerné (facultatif) —</option>${(courses||[]).map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.intitule)}</option>`).join('')}</select>
+      <select class="mini-input" id="matPromo"><option value="">Tous les étudiants</option>${(promos||[]).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('')}</select>
+      <input class="mini-input" id="matDesc" placeholder="Description (facultatif)">
+      <input type="file" class="mini-input" id="matFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.zip">
+      <button class="mini-btn" onclick="publishMaterial()">Publier le support</button>`;
+  }
+  h += fmtEmpty(list, m => {
+    const cours = m.courses ? esc(m.courses.code) + ' — ' + esc(m.courses.intitule) : 'Support de cours';
+    const dest = m.promotions ? esc(m.promotions.nom) : 'Tous les étudiants';
+    const auteur = m.users ? ' · ' + esc(m.users.nom) + ' ' + esc(m.users.prenom) : '';
+    const mine = isAdmin || m.created_by === profile.id;
+    return `<div class="list-item"><div><div class="t">${esc(m.titre)}</div>
+      <div class="s">${cours}${m.description ? ' · ' + esc(m.description) : ''}</div>
+      <div class="s" style="font-size:10.5px;">${new Date(m.created_at).toLocaleDateString('fr-FR')} · ${docSize(m.file_size)}${canPublish ? ' · pour : ' + dest : ''}${auteur}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="downloadMaterial('${m.id}')">Télécharger</button>
+        ${mine ? `<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteMaterial('${m.id}')">Suppr.</button>` : ''}
+      </div></div>`;
+  });
+  el.innerHTML = h;
+}
+
+function onMatCourse(){
+  const cid = document.getElementById('matCourse').value;
+  const c = (window.__matCourses||[]).find(x => x.id === cid);
+  if(c && c.promotion_id) document.getElementById('matPromo').value = c.promotion_id;
+}
+
+async function publishMaterial(){
+  const titre = document.getElementById('matTitre').value.trim();
+  const course_id = document.getElementById('matCourse').value || null;
+  const promotion_id = document.getElementById('matPromo').value || null;
+  const description = document.getElementById('matDesc').value.trim();
+  const file = document.getElementById('matFile').files[0];
+  if(!titre){ alert('Merci de saisir un titre.'); return; }
+  if(!file){ alert('Choisis un fichier.'); return; }
+  if(file.size > 20*1024*1024){ alert('Fichier trop lourd (20 Mo maximum).'); return; }
+  const safe = file.name.replace(/[^\w.\-]+/g,'_');
+  const path = `${currentProfile.id}/${Date.now()}_${safe}`;
+  const { error: upErr } = await sb.storage.from('supports-cours').upload(path, file, { upsert:false });
+  if(upErr){ alert("Erreur d'envoi : " + upErr.message); return; }
+  const { error } = await sb.from('course_materials').insert({
+    titre, description: description || null, course_id, promotion_id,
+    file_path: path, file_name: file.name, file_size: file.size, created_by: currentProfile.id
+  });
+  if(error){
+    await sb.storage.from('supports-cours').remove([path]);
+    alert("Erreur : " + error.message); return;
+  }
+  loadMaterials(currentProfile);
+}
+
+async function downloadMaterial(id){
+  const { data: m } = await sb.from('course_materials').select('file_path,file_name').eq('id', id).maybeSingle();
+  if(!m){ alert('Support introuvable.'); return; }
+  const { data, error } = await sb.storage.from('supports-cours').createSignedUrl(m.file_path, 600, { download: m.file_name || true });
+  if(error){ alert("Erreur : " + error.message); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+async function deleteMaterial(id){
+  if(!confirm('Supprimer ce support ?')) return;
+  const { data: m } = await sb.from('course_materials').select('file_path').eq('id', id).maybeSingle();
+  const { error } = await sb.from('course_materials').delete().eq('id', id);
+  if(error){ alert("Erreur : " + error.message); return; }
+  if(m && m.file_path) await sb.storage.from('supports-cours').remove([m.file_path]);
+  loadMaterials(currentProfile);
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
