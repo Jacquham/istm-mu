@@ -2168,7 +2168,10 @@ async function loadAnnouncements(profile){
   }
   // admins voient tout
 
-  listEl.innerHTML = fmtEmpty(visible, a => `<div class="list-item"><div><div class="t">${esc(a.titre)}</div><div class="s">${esc(a.contenu||'')}</div></div><span class="badge b-ok">${audienceLabels[a.audience]||a.audience}</span></div>`);
+  const isAdm = profile.role === 'admin_central' || profile.role === 'admin_academique';
+  listEl.innerHTML = fmtEmpty(visible, a => `<div class="list-item"><div><div class="t">${esc(a.titre)}</div><div class="s">${esc(a.contenu||'')}</div><div class="s" style="font-size:10.5px;">${new Date(a.created_at).toLocaleDateString('fr-FR')}</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;"><span class="badge b-ok">${audienceLabels[a.audience]||a.audience}</span>
+    ${(isAdm || a.created_by === profile.id) ? `<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:11px;" onclick="deleteAnnouncement('${a.id}')">Suppr.</button>` : ''}</div></div>`);
 }
 
 async function publishAnnouncement(){
@@ -2176,10 +2179,22 @@ async function publishAnnouncement(){
   const contenu = document.getElementById('anContenu').value.trim();
   const audience = document.getElementById('anAudience').value;
   if(!titre){ alert('Merci de saisir un titre.'); return; }
-  const { error } = await sb.from('announcements').insert({ titre, contenu, audience, created_by: currentProfile.id });
+  if(window.__publishingAn) return;
+  window.__publishingAn = true;
+  try {
+    const { error } = await sb.from('announcements').insert({ titre, contenu, audience, created_by: currentProfile.id });
+    if(error){ alert("Erreur : " + error.message); return; }
+    document.getElementById('anTitre').value = '';
+    document.getElementById('anContenu').value = '';
+    loadAnnouncements(currentProfile);
+  } finally { window.__publishingAn = false; }
+}
+
+async function deleteAnnouncement(id){
+  if(!confirm('Supprimer cette annonce ?')) return;
+  const { data, error } = await sb.from('announcements').delete().eq('id', id).select();
   if(error){ alert("Erreur : " + error.message); return; }
-  document.getElementById('anTitre').value = '';
-  document.getElementById('anContenu').value = '';
+  if(!data || !data.length){ alert("Suppression refusée : droits insuffisants (ou script SQL pas encore exécuté)."); return; }
   loadAnnouncements(currentProfile);
 }
 
