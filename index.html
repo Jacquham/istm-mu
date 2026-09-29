@@ -387,7 +387,13 @@ async function validateFromHome(id, status){
 
 async function loadAccountsAdmin(){
   const { data: pending } = await sb.from('users').select('id,nom,postnom,prenom,role,code_id,created_at').eq('compte_status','en_attente').order('created_at',{ascending:true});
-  const { data: rows } = await sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).limit(30);
+  const rows = await fetchAll(() => sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).order('id'));
+  const enr = await fetchAll(() => byYear(sb.from('student_enrollments').select('student_id,promotion_id,promotions(nom)').order('student_id')));
+  const { data: promos } = await pq(sb.from('promotions').select('id,nom').order('niveau'));
+  window.__accPromo = {};
+  enr.forEach(e => { window.__accPromo[e.student_id] = { id: e.promotion_id, nom: e.promotions ? e.promotions.nom : '' }; });
+  window.__accountsCache = rows || [];
+
   const panel = document.querySelector('.tab-panel[data-tab="accounts"]');
   let h = '<h2 class="sec">Comptes en attente de validation</h2>';
   h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
@@ -395,12 +401,52 @@ async function loadAccountsAdmin(){
         <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','valide')">Valider</button>
         <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','refuse')">Refuser</button>
       </div></div>`);
-  h += '<h2 class="sec">Tous les comptes (touche pour voir la fiche)</h2>';
+  h += `<h2 class="sec">Tous les comptes</h2>
+    <input class="mini-input" id="accSearch" placeholder="Rechercher : nom, ID, e-mail, téléphone…" oninput="renderAccountsList()">
+    <div style="display:flex;gap:8px;">
+      <select class="mini-input" id="accRole" onchange="renderAccountsList()" style="flex:1;">
+        <option value="">Tous les rôles</option><option value="etudiant">Étudiants</option><option value="enseignant">Enseignants</option><option value="admin">Administrateurs</option>
+      </select>
+      <select class="mini-input" id="accStatus" onchange="renderAccountsList()" style="flex:1;">
+        <option value="">Tous les statuts</option><option value="valide">Actifs</option><option value="en_attente">En attente</option><option value="refuse">Refusés</option><option value="suspendu">Suspendus</option>
+      </select>
+    </div>
+    <select class="mini-input" id="accPromoSel" onchange="renderAccountsList()">
+      <option value="">Toutes les promotions</option>${(promos||[]).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('')}<option value="none">Sans promotion</option>
+    </select>
+    <div id="accCount" style="font-size:12px;color:var(--muted);margin:2px 0 8px;"></div>
+    <div id="accList"></div>`;
+  panel.innerHTML = h;
+  renderAccountsList();
+}
+
+function renderAccountsList(){
+  const el = document.getElementById('accList');
+  if(!el) return;
+  const norm = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const tokens = norm(document.getElementById('accSearch').value).split(/\s+/).filter(Boolean);
+  const role = document.getElementById('accRole').value;
+  const status = document.getElementById('accStatus').value;
+  const promo = document.getElementById('accPromoSel').value;
   const badge = r => r.compte_status==='valide' ? 'b-ok' : (r.compte_status==='en_attente' ? 'b-warn' : 'b-bad');
   const label = r => ({valide:'Actif', en_attente:'En attente', refuse:'Refusé', suspendu:'Suspendu'})[r.compte_status] || r.compte_status;
-  window.__accountsCache = rows || [];
-  h += fmtEmpty(rows, r => `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`);
-  panel.innerHTML = h;
+  const list = (window.__accountsCache || []).filter(r => {
+    if(role === 'admin' ? !(r.role === 'admin_central' || r.role === 'admin_academique') : (role && r.role !== role)) return false;
+    if(status && r.compte_status !== status) return false;
+    const pr = window.__accPromo[r.id];
+    if(promo === 'none' ? (r.role === 'etudiant' ? !!pr : true) : (promo && !(pr && pr.id === promo))) return false;
+    if(tokens.length){
+      const hay = norm([r.nom, r.postnom, r.prenom, r.code_id, r.email, r.telephone].join(' '));
+      if(!tokens.every(t => hay.includes(t))) return false;
+    }
+    return true;
+  });
+  const MAX = 60;
+  document.getElementById('accCount').textContent = list.length + ' compte(s)' + (list.length > MAX ? ' — affine ta recherche (60 premiers affichés)' : '');
+  el.innerHTML = fmtEmpty(list.slice(0, MAX), r => {
+    const pr = window.__accPromo[r.id];
+    return `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)}${pr && pr.nom ? ' · ' + esc(pr.nom) : ''}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`;
+  });
 }
 
 function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -425,15 +471,14 @@ async function openUserDetail(id){
     const { data: stu } = await sb.from('students').select('*, promotions(nom)').eq('id', id).maybeSingle();
     if(!stu){
       body += `<h2 class="sec">Dossier académique</h2>
-        <div class="note">Pas encore de dossier étudiant (matricule non assigné).</div>
-        <input class="mini-input" id="newMatricule" placeholder="Matricule (laisser vide = ID automatique)">
+        <div class="note">Pas encore de dossier étudiant (promotion non assignée).</div>
         <select class="mini-input" id="newPromo"><option value="">— Choisir une promotion —</option>${promoOptions}</select>
         <button class="mini-btn" onclick="completeStudent('${id}')">Créer le dossier étudiant</button>`;
       document.getElementById('detailBody').innerHTML = body;
       return;
     }
     body += `<h2 class="sec">Dossier académique</h2>
-      <div class="list-item"><div><div class="t">Matricule</div><div class="s">${fld(stu.matricule)}</div></div></div>
+      <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(stu.matricule)}</div></div></div>
       <div class="list-item"><div><div class="t">Promotion</div><div class="s">${fld(stu.promotions && stu.promotions.nom)}</div></div></div>
       <select class="mini-input" id="chgPromo">
         <option value="">— Changer la promotion —</option>${promoOptions}
@@ -473,12 +518,11 @@ async function openUserDetail(id){
     if(!tea){
       body += `<h2 class="sec">Dossier enseignant</h2>
         <div class="note">Pas encore de dossier enseignant.</div>
-        <input class="mini-input" id="newMatEns" placeholder="Matricule enseignant (vide = ID automatique)">
         <input class="mini-input" id="newSpec" placeholder="Spécialité">
         <button class="mini-btn" onclick="completeTeacher('${id}')">Créer le dossier enseignant</button>`;
     } else {
       body += `<h2 class="sec">Dossier enseignant</h2>
-        <div class="list-item"><div><div class="t">Matricule</div><div class="s">${fld(tea.matricule_enseignant)}</div></div></div>
+        <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(tea.matricule_enseignant)}</div></div></div>
         <div class="list-item"><div><div class="t">Spécialité</div><div class="s">${fld(tea.specialite)}</div></div></div>`;
     }
   }
@@ -487,9 +531,8 @@ async function openUserDetail(id){
 function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
 
 async function completeStudent(id){
-  const matricule = document.getElementById('newMatricule').value.trim();
   const promotion_id = document.getElementById('newPromo').value || null;
-  const { error } = await sb.from('students').insert({ id, matricule: matricule || null, promotion_id });
+  const { error } = await sb.from('students').insert({ id, promotion_id });
   if(error){ alert("Erreur : " + error.message); return; }
   openUserDetail(id);
 }
@@ -501,9 +544,8 @@ async function changePromotion(id){
   openUserDetail(id);
 }
 async function completeTeacher(id){
-  const matricule_enseignant = document.getElementById('newMatEns').value.trim();
   const specialite = document.getElementById('newSpec').value.trim();
-  const { error } = await sb.from('teachers').insert({ id, matricule_enseignant: matricule_enseignant || null, specialite: specialite || null });
+  const { error } = await sb.from('teachers').insert({ id, specialite: specialite || null });
   if(error){ alert("Erreur : " + error.message); return; }
   openUserDetail(id);
 }
@@ -587,7 +629,7 @@ async function loadHomeStudent(profile){
   const coursesPanel = document.querySelector('.tab-panel[data-tab="courses"]');
 
   if(!stu){
-    homePanel.innerHTML = `<div class="note">Ton dossier académique n'a pas encore été complété par l'administration (matricule, promotion). Reviens un peu plus tard, ou contacte l'administration.</div>`;
+    homePanel.innerHTML = `<div class="note">Ton dossier académique n'a pas encore été complété par l'administration (promotion). Reviens un peu plus tard, ou contacte l'administration.</div>`;
     coursesPanel.innerHTML = '<div class="note">Pas encore de dossier académique.</div>';
     return;
   }
@@ -605,7 +647,7 @@ async function loadHomeStudent(profile){
 
   homePanel.innerHTML = `<h2 class="sec">Mon profil</h2>
     <div class="grid">
-      <div class="stat"><b>${fld(stu.matricule)}</b><span>Matricule</span></div>
+      <div class="stat"><b>${fld(stu.matricule)}</b><span>ID</span></div>
       <div class="stat"><b>${fld(stu.promotions && stu.promotions.nom) || 'Non assignée'}</b><span>Promotion</span></div>
       <div class="stat"><b>${moyenne}</b><span>Moyenne générale</span></div>
       <div class="stat"><b>${tauxPresence}</b><span>Taux de présence</span></div>
@@ -822,7 +864,7 @@ async function repEtudiants(f){
   const g = studs.filter(s => s.sexe === 'M').length, fl = studs.filter(s => s.sexe === 'F').length;
   return {
     title: 'Liste des étudiants', sheet: 'Etudiants',
-    columns: ['N°','Matricule','Nom complet','Sexe','Promotion','Téléphone','Statut'],
+    columns: ['N°','ID','Nom complet','Sexe','Promotion','Téléphone','Statut'],
     rows: studs.map((s,i) => [i+1, s.matricule, s.nomComplet, s.sexe || '-', s.promotions ? s.promotions.nom : '-', (s.users && s.users.telephone) || '-', statutInscLabels[s.statut_inscription] || s.statut_inscription || '-']),
     summary: [`Total : ${studs.length} étudiant(s) - ${g} garçon(s), ${fl} fille(s)`]
   };
@@ -848,7 +890,7 @@ async function repResultats(f){
   const withMoy = list.filter(x => x.moy !== null);
   return {
     title: 'Résultats des étudiants', sheet: 'Resultats',
-    columns: ['Rang','Matricule','Nom complet','Nb évaluations','Moyenne /20','Décision'],
+    columns: ['Rang','ID','Nom complet','Nb évaluations','Moyenne /20','Décision'],
     rows,
     summary: [`${withMoy.length} étudiant(s) évalué(s) sur ${studs.length} - ${withMoy.filter(x => x.moy >= 10).length} en réussite`,
               'Moyenne simple de toutes les évaluations ramenées sur 20 (sans pondération par crédits).']
@@ -874,7 +916,7 @@ async function repPresences(f){
   });
   return {
     title: 'Rapport de présence', sheet: 'Presences',
-    columns: ['Matricule','Nom complet','Séances','Présent','Absent','Retard','Justifié','Taux %'],
+    columns: ['ID','Nom complet','Séances','Présent','Absent','Retard','Justifié','Taux %'],
     rows,
     summary: [`Taux de présence moyen : ${T ? Math.round(P / T * 100) : 0} %`, 'Taux = présences / nombre de séances enregistrées.']
   };
@@ -907,7 +949,7 @@ async function repDebiteurs(f){
   }));
   return {
     title: 'Liste des débiteurs', sheet: 'Debiteurs',
-    columns: ['Étudiant','Matricule','Promotion','Contribution','Demandé','Payé','Solde'],
+    columns: ['Étudiant','ID','Promotion','Contribution','Demandé','Payé','Solde'],
     rows,
     summary: [`${debt.size} étudiant(s) débiteur(s) - Total dû : ${money(totalDu)}`]
   };
@@ -1735,7 +1777,7 @@ async function downloadStudentDoc(kind, sid){
   const u = stu.users || {};
   const nom = [u.nom, u.postnom, u.prenom].filter(Boolean).join(' ') || stu.matricule;
   const promo = enr.promotions ? enr.promotions.nom : '-';
-  const ident = stu.matricule || u.code_id || '';
+  const ident = u.code_id || stu.matricule || '';
   const list = (grades || []).filter(g => Number(g.note_max) > 0);
   const moy = list.length ? list.reduce((s,g) => s + Number(g.note)/Number(g.note_max)*20, 0) / list.length : null;
 
@@ -1754,7 +1796,7 @@ async function downloadStudentDoc(kind, sid){
     }
     doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('RELEVÉ DE NOTES', pw/2, 40, { align: 'center' });
     doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    const info = [`Nom : ${nom}`, `Matricule : ${ident}`, `Promotion : ${promo}`, `Année académique : ${year}`];
+    const info = [`Nom : ${nom}`, `ID : ${ident}`, `Promotion : ${promo}`, `Année académique : ${year}`];
     let y = 50; info.forEach(t => { doc.text(t, 14, y); y += 6; });
     doc.autoTable({
       startY: y + 2,
@@ -1785,11 +1827,11 @@ async function downloadStudentDoc(kind, sid){
   let text, title;
   if(kind === 'inscription'){
     title = "ATTESTATION D'INSCRIPTION";
-    text = `Le Responsable de la section Médecine d'Urgence - Anesthésie-Réanimation atteste que ${civ} ${nom}${naiss}, matricule ${ident}, est régulièrement inscrit(e) en ${promo} pour l'année académique ${year}.`;
+    text = `Le Responsable de la section Médecine d'Urgence - Anesthésie-Réanimation atteste que ${civ} ${nom}${naiss}, ID ${ident}, est régulièrement inscrit(e) en ${promo} pour l'année académique ${year}.`;
   } else {
     if(!pal || pal.decision !== 'Réussite'){ alert("Aucune décision de réussite disponible pour l'année " + year + " (le palmarès doit être généré et publié)."); return; }
     title = 'ATTESTATION DE RÉUSSITE';
-    text = `Le Responsable de la section Médecine d'Urgence - Anesthésie-Réanimation atteste que ${civ} ${nom}${naiss}, matricule ${ident}, a réussi l'année académique ${year} en ${promo}, avec la moyenne de ${Number(pal.moyenne).toFixed(2)} / 20 (mention ${pal.mention}), classé(e) au rang ${pal.rang}.`;
+    text = `Le Responsable de la section Médecine d'Urgence - Anesthésie-Réanimation atteste que ${civ} ${nom}${naiss}, ID ${ident}, a réussi l'année académique ${year} en ${promo}, avec la moyenne de ${Number(pal.moyenne).toFixed(2)} / 20 (mention ${pal.mention}), classé(e) au rang ${pal.rang}.`;
   }
   doc.text(title, pw/2, 45, { align: 'center' });
   doc.setFont('helvetica','normal'); doc.setFontSize(11.5);
