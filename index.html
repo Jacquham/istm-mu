@@ -212,6 +212,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
     <div class="tab-panel" data-tab="more">
       <div id="messagesSection"></div>
       <div id="documentsSection"></div>
+      <div id="planningSection"></div>
       <div id="materialsSection"></div>
       <div id="teacherStages"></div>
       <div id="studentStage"></div>
@@ -618,6 +619,7 @@ async function enter(profile){
   loadMessages(profile);
   loadDocuments(profile);
   loadMaterials(profile);
+  loadPlanning(profile);
   loadNotifications(profile);
   if(window.__justLoggedIn){ window.__justLoggedIn = false; logEvent('LOGIN', 'Connexion'); }
   if(!window.__notifTimer){ window.__notifTimer = setInterval(() => { if(currentProfile) loadNotifications(currentProfile); }, 60000); }
@@ -1505,6 +1507,106 @@ async function deleteDocument(id){
 }
 
 // ================= SUPPORTS DE COURS =================
+/* ===== Planification annuelle des cours ===== */
+const planLabels = { en_cours:['En cours','b-warn'], en_attente:['Validation demandée','b-warn'], valide:['Terminé','b-ok'] };
+
+async function loadPlanning(profile){
+  const el = document.getElementById('planningSection');
+  if(!el) return;
+  const role = profile.role;
+  const isAdmin = role === 'admin_central' || role === 'admin_academique';
+  let promos = [];
+  if(isAdmin || role === 'enseignant'){
+    const { data } = await pq(sb.from('promotions').select('id,nom').order('niveau'));
+    promos = data || [];
+  } else if(role === 'etudiant'){
+    let pid = null;
+    if(vy()){
+      const { data: en } = await sb.from('student_enrollments').select('promotion_id').eq('student_id', profile.id).eq('academic_year_id', vy()).maybeSingle();
+      pid = en ? en.promotion_id : null;
+    }
+    if(!pid){
+      const { data: st } = await sb.from('students').select('promotion_id').eq('id', profile.id).maybeSingle();
+      pid = st ? st.promotion_id : null;
+    }
+    if(pid) promos = [{ id: pid, nom: 'Ma promotion' }];
+  } else { el.innerHTML = ''; return; }
+  window.__planPromos = promos;
+  if(!promos.length){ el.innerHTML = '<h2 class="sec">Planning des cours</h2><div class="note">Aucune promotion disponible pour cette année.</div>'; return; }
+  if(!promos.some(p => p.id === window.__planPromo)) window.__planPromo = promos[0].id;
+  renderPlanning();
+}
+
+async function renderPlanning(){
+  const el = document.getElementById('planningSection');
+  const profile = currentProfile;
+  const role = profile.role;
+  const isAdmin = role === 'admin_central' || role === 'admin_academique';
+  const isCurYear = window.__curYear && vy() === window.__curYear.id;
+  const promos = window.__planPromos || [];
+  const { data: rows, error } = await sb.rpc('planning_cours', { p_promotion: window.__planPromo, p_year: vy() });
+  let h = '<h2 class="sec">Planning des cours</h2>';
+  if(promos.length > 1){
+    h += `<select class="mini-input" onchange="window.__planPromo=this.value;renderPlanning()">${promos.map(p => `<option value="${p.id}" ${p.id === window.__planPromo ? 'selected' : ''}>${esc(p.nom)}</option>`).join('')}</select>`;
+  }
+  if(error){ el.innerHTML = h + `<div class="note">Impossible de charger le planning : ${esc(error.message)}</div>`; return; }
+  const list = rows || [];
+
+  if(isAdmin){
+    const { data: pend } = await byYear(sb.from('course_completions').select('id,demande_role,created_at,courses(code,intitule),users:demande_par(nom,prenom)').eq('statut','en_attente').order('created_at'));
+    if(pend && pend.length){
+      h += '<div class="note" style="margin-top:8px;"><b>Demandes à valider</b></div>';
+      h += pend.map(d => `<div class="list-item"><div><div class="t">${esc(d.courses ? d.courses.code + ' — ' + d.courses.intitule : '')}</div>
+        <div class="s">${esc(d.users ? ((d.users.nom||'') + ' ' + (d.users.prenom||'')).trim() : '?')} · ${esc(roleLabels[d.demande_role]||d.demande_role||'')}</div></div>
+        <div style="display:flex;gap:6px;">
+          <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="decideCompletion('${d.id}','valide')">Valider</button>
+          <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="decideCompletion('${d.id}','refuse')">Refuser</button>
+        </div></div>`).join('');
+    }
+  }
+
+  const bySem = {};
+  list.forEach(c => { const k = c.semestre || '—'; (bySem[k] = bySem[k] || []).push(c); });
+  const sems = Object.keys(bySem).sort();
+  if(!sems.length) h += '<div class="note">Aucun cours dans cette promotion.</div>';
+  sems.forEach(k => {
+    h += `<div class="s" style="margin:10px 0 4px;font-weight:600;">Semestre ${esc(k)}</div>`;
+    h += bySem[k].map(c => {
+      const lb = planLabels[c.statut] || planLabels.en_cours;
+      let act = '';
+      if(isCurYear && c.statut === 'en_cours'){
+        const mine = role === 'enseignant' ? c.enseignant_id === profile.id : true;
+        if(mine) act = `<button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="declareCourseDone('${c.course_id}')">${isAdmin ? 'Marquer terminé' : (role === 'enseignant' ? 'Déclarer terminé' : 'Signaler terminé')}</button>`;
+      }
+      return `<div class="list-item"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
+        <div class="s">${esc(c.enseignant_nom || 'Enseignant non assigné')} · ${esc(c.credits ?? '—')} crédits · ${esc(c.volume_horaire ?? '—')} h</div>
+        <span class="badge ${lb[1]}">${lb[0]}</span></div><div>${act}</div></div>`;
+    }).join('');
+  });
+  el.innerHTML = h;
+}
+
+async function declareCourseDone(cid){
+  const isAdmin = currentProfile.role === 'admin_central' || currentProfile.role === 'admin_academique';
+  if(!confirm(isAdmin ? 'Marquer ce cours comme terminé ?' : 'Envoyer la demande de validation à l\'administration ?')) return;
+  const row = { course_id: cid, academic_year_id: vy() };
+  if(isAdmin) row.statut = 'valide';
+  const { error } = await sb.from('course_completions').insert(row);
+  if(error){ alert(error.code === '23505' ? 'Une demande est déjà en attente pour ce cours.' : 'Erreur : ' + error.message); return; }
+  renderPlanning();
+}
+
+async function decideCompletion(id, statut){
+  let commentaire = null;
+  if(statut === 'refuse'){
+    commentaire = prompt('Motif du refus (facultatif) :');
+    if(commentaire === null) return;
+  }
+  const { error } = await sb.from('course_completions').update({ statut, commentaire: commentaire || null }).eq('id', id);
+  if(error){ alert('Erreur : ' + error.message); return; }
+  renderPlanning();
+}
+
 async function loadMaterials(profile){
   const el = document.getElementById('materialsSection');
   if(!el) return;
@@ -1698,7 +1800,7 @@ const BACKUP_TABLES = [
   ['courses','Cours'], ['schedules','Horaires'], ['grades','Notes'], ['attendance','Presences'],
   ['payments','Paiements'], ['payment_requests','Paiements_contributions'], ['contributions','Contributions'],
   ['finance_operations','Caisse'], ['palmares','Palmares'], ['internships','Stages'],
-  ['announcements','Annonces'], ['official_documents','Documents'], ['course_materials','Supports_cours'],
+  ['announcements','Annonces'], ['official_documents','Documents'], ['course_materials','Supports_cours'], ['course_completions','Cours_termines'],
   ['audit_logs','Journal']
 ];
 
