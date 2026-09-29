@@ -209,6 +209,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
     <div class="tab-panel" data-tab="more">
       <div id="messagesSection"></div>
+      <div id="documentsSection"></div>
       <div id="teacherStages"></div>
       <div id="studentStage"></div>
       <div id="palmaresSection"></div>
@@ -541,6 +542,7 @@ function enter(profile){
   loadAnnouncements(profile);
   loadPalmares(profile);
   loadMessages(profile);
+  loadDocuments(profile);
   loadNotifications(profile);
   if(window.__justLoggedIn){ window.__justLoggedIn = false; logEvent('LOGIN', 'Connexion'); }
   if(!window.__notifTimer){ window.__notifTimer = setInterval(() => { if(currentProfile) loadNotifications(currentProfile); }, 60000); }
@@ -1348,6 +1350,78 @@ async function sendMessageAdmin(){
   const { error } = await sb.from('messages').insert({ sender_id: currentProfile.id, recipient_id, contenu });
   if(error){ alert("Erreur : " + error.message); return; }
   renderMessagesAdmin();
+}
+
+// ================= DOCUMENTS OFFICIELS =================
+const docCatLabels = { reglement:"Règlement", circulaire:"Circulaire", formulaire:"Formulaire", attestation:"Attestation", horaire:"Horaire / calendrier", autre:"Autre" };
+const docAudLabels = { tous:"Tout le monde", tous_etudiants:"Tous les étudiants", l1:"L1", l2:"L2", l3:"L3", enseignants:"Enseignants", administrateurs:"Administrateurs" };
+function docSize(n){ n = Number(n||0); return n >= 1048576 ? (n/1048576).toFixed(1)+' Mo' : Math.max(1, Math.round(n/1024))+' Ko'; }
+
+async function loadDocuments(profile){
+  const el = document.getElementById('documentsSection');
+  if(!el) return;
+  const isAdmin = profile.role === 'admin_central' || profile.role === 'admin_academique';
+  const { data, error } = await sb.from('official_documents').select('*').order('created_at',{ascending:false}).limit(60);
+  if(error){ el.innerHTML = `<h2 class="sec">Documents</h2><div class="note">Impossible de charger les documents : ${esc(error.message)}</div>`; return; }
+  const list = data || [];
+  let h = '<h2 class="sec">Documents officiels</h2>';
+  if(isAdmin){
+    h += `<input class="mini-input" id="docTitre" placeholder="Titre du document">
+      <select class="mini-input" id="docCat">${Object.keys(docCatLabels).map(k => `<option value="${k}">${docCatLabels[k]}</option>`).join('')}</select>
+      <select class="mini-input" id="docAud">${Object.keys(docAudLabels).map(k => `<option value="${k}">${docAudLabels[k]}</option>`).join('')}</select>
+      <input class="mini-input" id="docDesc" placeholder="Description (facultatif)">
+      <input type="file" class="mini-input" id="docFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg">
+      <button class="mini-btn" onclick="publishDocument()">Publier le document</button>`;
+  }
+  h += fmtEmpty(list, d => `<div class="list-item"><div><div class="t">${esc(d.titre)}</div>
+      <div class="s">${esc(docCatLabels[d.categorie]||d.categorie)}${d.description ? ' · ' + esc(d.description) : ''}</div>
+      <div class="s" style="font-size:10.5px;">${new Date(d.created_at).toLocaleDateString('fr-FR')} · ${docSize(d.file_size)}${isAdmin ? ' · pour : ' + esc(docAudLabels[d.audience]||d.audience) : ''}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openDocument('${d.id}')">Ouvrir</button>
+        ${isAdmin ? `<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteDocument('${d.id}')">Suppr.</button>` : ''}
+      </div></div>`);
+  el.innerHTML = h;
+}
+
+async function publishDocument(){
+  const titre = document.getElementById('docTitre').value.trim();
+  const categorie = document.getElementById('docCat').value;
+  const audience = document.getElementById('docAud').value;
+  const description = document.getElementById('docDesc').value.trim();
+  const file = document.getElementById('docFile').files[0];
+  if(!titre){ alert('Merci de saisir un titre.'); return; }
+  if(!file){ alert('Choisis un fichier.'); return; }
+  if(file.size > 10*1024*1024){ alert('Fichier trop lourd (10 Mo maximum).'); return; }
+  const safe = file.name.replace(/[^\w.\-]+/g,'_');
+  const path = `${Date.now()}_${safe}`;
+  const { error: upErr } = await sb.storage.from('documents-officiels').upload(path, file, { upsert:false });
+  if(upErr){ alert("Erreur d'envoi : " + upErr.message); return; }
+  const { error } = await sb.from('official_documents').insert({
+    titre, categorie, audience, description: description || null,
+    file_path: path, file_name: file.name, file_size: file.size, created_by: currentProfile.id
+  });
+  if(error){
+    await sb.storage.from('documents-officiels').remove([path]);
+    alert("Erreur : " + error.message); return;
+  }
+  loadDocuments(currentProfile);
+}
+
+async function openDocument(id){
+  const { data: d } = await sb.from('official_documents').select('file_path').eq('id', id).maybeSingle();
+  if(!d){ alert('Document introuvable.'); return; }
+  const { data, error } = await sb.storage.from('documents-officiels').createSignedUrl(d.file_path, 600);
+  if(error){ alert("Erreur : " + error.message); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+async function deleteDocument(id){
+  if(!confirm('Supprimer ce document ?')) return;
+  const { data: d } = await sb.from('official_documents').select('file_path').eq('id', id).maybeSingle();
+  const { error } = await sb.from('official_documents').delete().eq('id', id);
+  if(error){ alert("Erreur : " + error.message); return; }
+  if(d && d.file_path) await sb.storage.from('documents-officiels').remove([d.file_path]);
+  loadDocuments(currentProfile);
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
