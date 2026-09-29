@@ -649,7 +649,7 @@ async function loadSystemAdmin(){
     (us||[]).forEach(u => { names[u.id] = `${u.nom} ${u.prenom}`; });
   }
 
-  let h = yearsPanelHtml() + reportsSection(promos) + `<h2 class="sec">Administrateurs et permissions</h2>`;
+  let h = yearsPanelHtml() + backupSection() + reportsSection(promos) + `<h2 class="sec">Administrateurs et permissions</h2>`;
   if(!(admins||[]).length){
     h += `<div class="note">Aucun administrateur secondaire validé pour le moment. Une personne inscrite comme « Personnel administratif » apparaît ici une fois son compte validé.</div>`;
   } else {
@@ -1646,6 +1646,44 @@ async function runPassage(){
   closeDetail();
   window.__viewYear = null;
   enter(currentProfile);
+}
+
+// ================= SAUVEGARDE COMPLÈTE (EXCEL) =================
+const BACKUP_TABLES = [
+  ['users','Comptes'], ['students','Etudiants'], ['teachers','Enseignants'], ['administrators','Administrateurs'],
+  ['academic_years','Annees'], ['promotions','Promotions'], ['student_enrollments','Inscriptions'],
+  ['courses','Cours'], ['schedules','Horaires'], ['grades','Notes'], ['attendance','Presences'],
+  ['payments','Paiements'], ['payment_requests','Paiements_contributions'], ['contributions','Contributions'],
+  ['finance_operations','Caisse'], ['palmares','Palmares'], ['internships','Stages'],
+  ['announcements','Annonces'], ['official_documents','Documents'], ['course_materials','Supports_cours'],
+  ['audit_logs','Journal']
+];
+
+function backupSection(){
+  return `<h2 class="sec">Sauvegarde des données</h2>
+    <div class="note">Exporte toutes les données importantes (comptes, notes, présences, paiements, caisse, palmarès…) dans un seul fichier Excel. Les messages privés ne sont pas inclus. Ce fichier contient des données personnelles : garde-le en lieu sûr.</div>
+    <button class="mini-btn" onclick="runBackup()">Télécharger la sauvegarde complète (Excel)</button>
+    <div id="backupStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></div>`;
+}
+
+async function runBackup(){
+  const status = document.getElementById('backupStatus');
+  if(!window.XLSX){ alert("Le module Excel n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
+  const wb = XLSX.utils.book_new();
+  const skipped = [];
+  let total = 0;
+  for(const [table, sheet] of BACKUP_TABLES){
+    status.textContent = 'Export en cours : ' + sheet + '…';
+    try {
+      const rows = await fetchAll(() => sb.from(table).select('*').order('id'));
+      const flat = rows.map(r => { const o = {}; Object.keys(r).forEach(k => { const v = r[k]; o[k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v; }); return o; });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(flat.length ? flat : [{ info: 'Aucune donnée' }]), sheet.slice(0,31));
+      total += rows.length;
+    } catch(e) { skipped.push(sheet); }
+  }
+  const y = (window.__curYear && window.__curYear.libelle) ? '_' + window.__curYear.libelle : '';
+  XLSX.writeFile(wb, `ISTM-MU_sauvegarde${y}_${localToday()}.xlsx`);
+  status.textContent = `Sauvegarde générée : ${total} ligne(s).` + (skipped.length ? ` Non exportées (accès ou table absente) : ${skipped.join(', ')}.` : '');
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
