@@ -208,6 +208,8 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
     </div>
 
     <div class="tab-panel" data-tab="more">
+      <div id="teacherStages"></div>
+      <div id="studentStage"></div>
       <div id="palmaresSection"></div>
       <h2 class="sec">Annonces</h2>
       <div id="announcementsPublish"></div>
@@ -430,6 +432,7 @@ async function openUserDetail(id){
       <input class="mini-input" id="pPaye" type="number" placeholder="Montant déjà payé (CDF)" value="0">
       <select class="mini-input" id="pStatut"><option value="non_paye">Non payé</option><option value="partiel">Partiel</option><option value="paye">Payé</option></select>
       <button class="mini-btn" onclick="addPayment('${id}')">Enregistrer le paiement</button>`;
+    body += await stageSectionAdmin(id);
   }
   else if(u.role === 'enseignant'){
     const { data: tea } = await sb.from('teachers').select('*').eq('id', id).maybeSingle();
@@ -526,6 +529,7 @@ function enter(profile){
     loadHomeStudent(profile);
     loadScheduleStudent(profile);
     loadFinanceStudent(profile);
+    loadStageStudent(profile);
   } else if(profile.role === 'enseignant'){
     loadHomeTeacher(profile);
   } else {
@@ -1114,6 +1118,145 @@ async function renderPalmaresStudent(profile){
   }).join('');
 }
 
+// ================= STAGES =================
+const stageStatutLabels = { en_cours:['b-warn','En cours'], termine:['b-warn','Terminé'], rapport_depose:['b-warn','Rapport déposé'], valide:['b-ok','Validé'], rejete:['b-bad','Rejeté'] };
+
+async function stageSectionAdmin(studentId){
+  const [{data:stages},{data:teachers}] = await Promise.all([
+    sb.from('internships').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
+    sb.from('teachers').select('id,users:id(nom,prenom)')
+  ]);
+  const teacherOptions = (teachers||[]).map(t => `<option value="${t.id}">${(t.users&&t.users.nom)||''} ${(t.users&&t.users.prenom)||''}</option>`).join('');
+  let h = `<h2 class="sec">Stage</h2>`;
+  h += fmtEmpty(stages, s => stageCardAdmin(s));
+  h += `<div class="note">Nouveau stage :</div>
+    <input class="mini-input" id="stLieu" placeholder="Lieu de stage (hôpital, clinique...)">
+    <input class="mini-input" id="stService" placeholder="Service (ex: Urgences)">
+    <label style="font-size:11px;color:var(--muted);">Date de début</label>
+    <input class="mini-input" id="stDebut" type="date">
+    <label style="font-size:11px;color:var(--muted);">Date de fin</label>
+    <input class="mini-input" id="stFin" type="date">
+    <select class="mini-input" id="stEncadreurT"><option value="">— Enseignant encadreur (optionnel) —</option>${teacherOptions}</select>
+    <input class="mini-input" id="stEncadreurNom" placeholder="Nom de l'encadreur sur le terrain">
+    <input class="mini-input" id="stObjectifs" placeholder="Objectifs du stage">
+    <button class="mini-btn" onclick="addInternship('${studentId}')">Créer le stage</button>`;
+  return h;
+}
+
+function stageCardAdmin(s){
+  const b = stageStatutLabels[s.statut] || ['b-warn', s.statut];
+  return `<div class="list-item"><div><div class="t">${s.lieu_stage}${s.service?' — '+s.service:''}</div>
+      <div class="s">${s.date_debut?new Date(s.date_debut).toLocaleDateString('fr-FR'):''} → ${s.date_fin?new Date(s.date_fin).toLocaleDateString('fr-FR'):''}${s.rapport_url?' · rapport déposé':''}</div>
+      ${s.rapport_url?`<button class="mini-btn" style="margin:6px 0;width:auto;padding:6px 12px;font-size:11.5px;" onclick="viewRapport('${s.id}')">Voir le rapport</button>`:''}
+      <input class="mini-input" id="stApp_${s.id}" placeholder="Appréciation" value="${s.appreciation||''}">
+      <input class="mini-input" id="stNote_${s.id}" type="number" placeholder="Note /20" value="${s.note_stage||''}">
+      <div style="display:flex;gap:6px;">
+        <button class="mini-btn" style="background:var(--green);" onclick="reviewInternship('${s.id}','valide')">Valider</button>
+        <button class="mini-btn" style="background:var(--danger);" onclick="reviewInternship('${s.id}','rejete')">Rejeter</button>
+      </div>
+    </div><span class="badge ${b[0]}">${b[1]}</span></div>`;
+}
+
+async function addInternship(studentId){
+  const lieu_stage = document.getElementById('stLieu').value.trim();
+  const service = document.getElementById('stService').value.trim();
+  const date_debut = document.getElementById('stDebut').value || null;
+  const date_fin = document.getElementById('stFin').value || null;
+  const encadreur_teacher_id = document.getElementById('stEncadreurT').value || null;
+  const encadreur = document.getElementById('stEncadreurNom').value.trim();
+  const objectifs = document.getElementById('stObjectifs').value.trim();
+  if(!lieu_stage){ alert('Le lieu de stage est obligatoire.'); return; }
+  const { error } = await sb.from('internships').insert({ student_id: studentId, lieu_stage, service, date_debut, date_fin, encadreur_teacher_id, encadreur, objectifs });
+  if(error){ alert("Erreur : " + error.message); return; }
+  openUserDetail(studentId);
+}
+
+async function reviewInternship(id, statut){
+  const appreciation = document.getElementById('stApp_'+id).value.trim();
+  const note_stage = document.getElementById('stNote_'+id).value;
+  const patch = { statut, appreciation: appreciation || null };
+  if(note_stage !== '') patch.note_stage = parseFloat(note_stage);
+  const { data, error } = await sb.from('internships').update(patch).eq('id', id).select();
+  if(error){ alert("Erreur : " + error.message); return; }
+  if(!data || !data.length){ alert("Action refusée par la base (permission insuffisante)."); return; }
+  const sid = data[0].student_id;
+  openUserDetail(sid);
+}
+
+async function viewRapport(internshipId){
+  const { data: intern } = await sb.from('internships').select('rapport_url').eq('id', internshipId).maybeSingle();
+  if(!intern || !intern.rapport_url){ alert("Pas de rapport."); return; }
+  const { data, error } = await sb.storage.from('documents').createSignedUrl(intern.rapport_url, 600);
+  if(error){ alert("Erreur : " + error.message); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+// ---------- Espace enseignant : stages a encadrer ----------
+async function loadStagesTeacher(profile){
+  const { data: stages } = await sb.from('internships').select('*, users:student_id(nom,prenom)').eq('encadreur_teacher_id', profile.id).order('created_at',{ascending:false});
+  const el = document.getElementById('teacherStages');
+  if(!el) return;
+  if(!(stages||[]).length){ el.innerHTML = ''; return; }
+  el.innerHTML = '<h2 class="sec">Stages à encadrer</h2>' + stages.map(s => {
+    const b = stageStatutLabels[s.statut] || ['b-warn', s.statut];
+    return `<div class="list-item"><div><div class="t">${(s.users&&s.users.nom)||''} ${(s.users&&s.users.prenom)||''} — ${s.lieu_stage}</div>
+        <div class="s">${s.service||''}${s.rapport_url?' · rapport déposé':''}</div>
+        ${s.rapport_url?`<button class="mini-btn" style="margin:6px 0;width:auto;padding:6px 12px;font-size:11.5px;" onclick="viewRapport('${s.id}')">Voir le rapport</button>`:''}
+        <input class="mini-input" id="stApp_${s.id}" placeholder="Appréciation" value="${s.appreciation||''}">
+        <input class="mini-input" id="stNote_${s.id}" type="number" placeholder="Note /20" value="${s.note_stage||''}">
+        <div style="display:flex;gap:6px;">
+          <button class="mini-btn" style="background:var(--green);" onclick="reviewInternshipTeacher('${s.id}')">Valider</button>
+          <button class="mini-btn" style="background:var(--danger);" onclick="reviewInternshipTeacher('${s.id}','rejete')">Rejeter</button>
+        </div></div><span class="badge ${b[0]}">${b[1]}</span></div>`;
+  }).join('');
+}
+async function reviewInternshipTeacher(id, statut){
+  statut = statut || 'valide';
+  const appreciation = document.getElementById('stApp_'+id).value.trim();
+  const note_stage = document.getElementById('stNote_'+id).value;
+  const patch = { statut, appreciation: appreciation || null };
+  if(note_stage !== '') patch.note_stage = parseFloat(note_stage);
+  const { error } = await sb.from('internships').update(patch).eq('id', id);
+  if(error){ alert("Erreur : " + error.message); return; }
+  loadStagesTeacher(currentProfile);
+}
+
+// ---------- Espace etudiant : mon stage ----------
+async function loadStageStudent(profile){
+  const el = document.getElementById('studentStage');
+  if(!el) return;
+  const { data: stages } = await sb.from('internships').select('*').eq('student_id', profile.id).order('created_at',{ascending:false});
+  if(!(stages||[]).length){ el.innerHTML = ''; return; }
+  window.__myStages = stages;
+  el.innerHTML = '<h2 class="sec">Mon stage</h2>' + stages.map(s => {
+    const b = stageStatutLabels[s.statut] || ['b-warn', s.statut];
+    const canUpload = ['en_cours','termine','rejete'].includes(s.statut);
+    return `<div class="list-item"><div><div class="t">${s.lieu_stage}${s.service?' — '+s.service:''}</div>
+        <div class="s">${s.date_debut?new Date(s.date_debut).toLocaleDateString('fr-FR'):''} → ${s.date_fin?new Date(s.date_fin).toLocaleDateString('fr-FR'):''}${s.encadreur?' · Encadreur : '+s.encadreur:''}</div>
+        ${s.objectifs?`<div class="s">Objectifs : ${s.objectifs}</div>`:''}
+        ${s.appreciation?`<div class="s">Appréciation : ${s.appreciation}${s.note_stage!=null?' — '+s.note_stage+'/20':''}</div>`:''}
+        ${s.rapport_url?`<button class="mini-btn" style="margin:6px 0;width:auto;padding:6px 12px;font-size:11.5px;" onclick="viewRapport('${s.id}')">Voir mon rapport déposé</button>`:''}
+        ${canUpload?`<input type="file" accept="application/pdf" id="stFile_${s.id}" style="margin:8px 0;color:var(--text);font-size:12px;">
+        <button class="mini-btn" onclick="uploadRapport('${s.id}')">Déposer le rapport (PDF)</button>`:''}
+      </div><span class="badge ${b[0]}">${b[1]}</span></div>`;
+  }).join('');
+}
+
+async function uploadRapport(internshipId){
+  const fileInput = document.getElementById('stFile_'+internshipId);
+  const file = fileInput.files[0];
+  if(!file){ alert("Choisis un fichier PDF."); return; }
+  if(file.type !== 'application/pdf'){ alert("Le rapport doit être un fichier PDF."); return; }
+  if(file.size > 15*1024*1024){ alert("Fichier trop volumineux (15 Mo maximum)."); return; }
+  const path = `stage-rapports/${currentProfile.id}/${Date.now()}_${file.name}`;
+  const { error: upErr } = await sb.storage.from('documents').upload(path, file, { upsert: true, contentType: 'application/pdf' });
+  if(upErr){ alert("Erreur d'envoi : " + upErr.message); return; }
+  const { error } = await sb.from('internships').update({ rapport_url: path, statut: 'rapport_depose' }).eq('id', internshipId);
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert("Rapport déposé. Il est maintenant visible par ton encadreur et l'administration.");
+  loadStageStudent(currentProfile);
+}
+
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
 const prBadge = s => ({en_attente:['b-warn','En attente'], valide:['b-ok','Validé'], refuse:['b-bad','Refusé'], annule:['b-bad','Annulé']})[s] || ['b-warn', s];
 
@@ -1277,6 +1420,7 @@ async function loadNotifications(profile){
 const jourNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
 async function loadHomeTeacher(profile){
+  loadStagesTeacher(profile);
   const [{data:courses},{data:scheds}] = await Promise.all([
     sb.from('courses').select('id,code,intitule,promotion_id,promotions(nom)').eq('enseignant_responsable_id', profile.id),
     sb.from('schedules').select('*, courses(intitule), promotions(nom)').eq('teacher_id', profile.id).order('heure_debut')
