@@ -208,6 +208,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
     </div>
 
     <div class="tab-panel" data-tab="more">
+      <div id="messagesSection"></div>
       <div id="teacherStages"></div>
       <div id="studentStage"></div>
       <div id="palmaresSection"></div>
@@ -538,6 +539,7 @@ function enter(profile){
   }
   loadAnnouncements(profile);
   loadPalmares(profile);
+  loadMessages(profile);
   loadNotifications(profile);
   if(window.__justLoggedIn){ window.__justLoggedIn = false; logEvent('LOGIN', 'Connexion'); }
   if(!window.__notifTimer){ window.__notifTimer = setInterval(() => { if(currentProfile) loadNotifications(currentProfile); }, 60000); }
@@ -1255,6 +1257,96 @@ async function uploadRapport(internshipId){
   if(error){ alert("Erreur : " + error.message); return; }
   alert("Rapport déposé. Il est maintenant visible par ton encadreur et l'administration.");
   loadStageStudent(currentProfile);
+}
+
+// ================= MESSAGERIE INTERNE =================
+async function loadMessages(profile){
+  const el = document.getElementById('messagesSection');
+  if(!el) return;
+  const isAdmin = profile.role === 'admin_central' || profile.role === 'admin_academique';
+  if(isAdmin) return renderMessagesAdmin();
+  if(profile.role === 'etudiant' || profile.role === 'enseignant') return renderMessagesUser(profile);
+  el.innerHTML = '';
+}
+
+function msgTime(t){ return new Date(t).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+
+async function renderMessagesUser(profile){
+  const el = document.getElementById('messagesSection');
+  const { data } = await sb.from('messages').select('*')
+    .or(`sender_id.eq.${profile.id},recipient_id.eq.${profile.id}`)
+    .order('created_at',{ascending:true});
+  const list = data || [];
+  const unreadIds = list.filter(m => m.recipient_id === profile.id && !m.is_read).map(m => m.id);
+  if(unreadIds.length) sb.from('messages').update({ is_read:true }).in('id', unreadIds).then(()=>{});
+
+  const thread = list.map(m => `<div class="list-item" style="${m.sender_id===profile.id?'':'border-color:var(--blue2);border-width:2px;'}">
+      <div><div class="t">${m.sender_id===profile.id?'Toi → Administration':'Administration'}</div>
+      <div class="s">${m.contenu}</div>
+      <div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div></div>`).join('');
+
+  el.innerHTML = `<h2 class="sec">Messagerie avec l'administration</h2>
+    ${list.length ? thread : "<div class='note'>Aucun message pour l'instant.</div>"}
+    <input class="mini-input" id="msgNew" placeholder="Écrire à l'administration...">
+    <button class="mini-btn" onclick="sendMessageToAdmin()">Envoyer</button>`;
+}
+
+async function sendMessageToAdmin(){
+  const contenu = document.getElementById('msgNew').value.trim();
+  if(!contenu){ return; }
+  const { error } = await sb.from('messages').insert({ sender_id: currentProfile.id, recipient_id: null, contenu });
+  if(error){ alert("Erreur : " + error.message); return; }
+  renderMessagesUser(currentProfile);
+}
+
+async function renderMessagesAdmin(){
+  const el = document.getElementById('messagesSection');
+  const { data: recu } = await sb.from('messages').select('*').or('recipient_id.eq.' + currentProfile.id + ',recipient_id.is.null').order('created_at',{ascending:false}).limit(40);
+  const { data: envoyes } = await sb.from('messages').select('*').eq('sender_id', currentProfile.id).order('created_at',{ascending:false}).limit(40);
+  const all = (recu||[]).concat(envoyes||[]);
+  const uids = [...new Set(all.flatMap(m => [m.sender_id, m.recipient_id]).filter(Boolean))];
+  const names = {};
+  if(uids.length){
+    const { data: us } = await sb.from('users').select('id,nom,prenom,role').in('id', uids);
+    (us||[]).forEach(u => { names[u.id] = `${u.nom} ${u.prenom}`; });
+  }
+  const { data: dest } = await sb.from('users').select('id,nom,prenom,role').eq('compte_status','valide').neq('id', currentProfile.id).order('nom');
+  window.__msgDest = dest || [];
+  const destOptions = (dest||[]).map(d => `<option value="${d.id}">${d.nom} ${d.prenom} (${roleLabels[d.role]||d.role})</option>`).join('');
+
+  const unread = (recu||[]).filter(m => !m.is_read && m.sender_id !== currentProfile.id).length;
+
+  let h = `<h2 class="sec">Messagerie ${unread ? `(${unread} non lu${unread>1?'s':''})` : ''}</h2>
+    <select class="mini-input" id="msgDest"><option value="">— Choisir un destinataire —</option>${destOptions}</select>
+    <input class="mini-input" id="msgNewAdmin" placeholder="Message...">
+    <button class="mini-btn" onclick="sendMessageAdmin()">Envoyer</button>
+    <h2 class="sec">Reçus</h2>`;
+  h += fmtEmpty(recu, m => `<div class="list-item" style="${m.is_read?'':'border-color:var(--blue2);border-width:2px;'}"><div><div class="t">${names[m.sender_id]||'Utilisateur'}${m.recipient_id===null?" (à l'administration)":''}</div><div class="s">${m.contenu}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div>
+      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="replyTo('${m.sender_id}')">Répondre</button></div>`);
+  h += `<h2 class="sec">Envoyés</h2>`;
+  h += fmtEmpty(envoyes, m => `<div class="list-item"><div><div class="t">À : ${names[m.recipient_id]||'—'}</div><div class="s">${m.contenu}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div></div>`);
+  el.innerHTML = h;
+
+  if(unread && recu && recu.length){
+    const ids = recu.filter(m => !m.is_read && m.sender_id !== currentProfile.id).map(m => m.id);
+    if(ids.length) sb.from('messages').update({ is_read:true }).in('id', ids).then(()=>{});
+  }
+}
+
+function replyTo(userId){
+  document.getElementById('msgDest').value = userId;
+  document.getElementById('msgNewAdmin').focus();
+  document.getElementById('msgNewAdmin').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function sendMessageAdmin(){
+  const recipient_id = document.getElementById('msgDest').value;
+  const contenu = document.getElementById('msgNewAdmin').value.trim();
+  if(!recipient_id){ alert('Choisis un destinataire.'); return; }
+  if(!contenu){ return; }
+  const { error } = await sb.from('messages').insert({ sender_id: currentProfile.id, recipient_id, contenu });
+  if(error){ alert("Erreur : " + error.message); return; }
+  renderMessagesAdmin();
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
