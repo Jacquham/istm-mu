@@ -219,8 +219,6 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <h2 class="sec">Annonces</h2>
       <div id="announcementsPublish"></div>
       <div id="announcementsList"><div class="note">Chargement…</div></div>
-      <h2 class="sec">Documents</h2>
-      <div class="note">Bientôt disponible.</div>
     </div>
 
     <div class="note" id="footNote"></div>
@@ -1722,14 +1720,17 @@ async function downloadStudentDoc(kind, sid){
   const yid = vy();
   if(!yid){ alert("Aucune année académique sélectionnée."); return; }
   const year = yearLabel(yid);
-  const [{ data: stu }, { data: enr }, { data: pal }, { data: grades }] = await Promise.all([
-    sb.from('students').select('id,matricule,sexe,date_naissance,lieu_naissance,users:id(nom,postnom,prenom,code_id)').eq('id', sid).maybeSingle(),
+  const [stuRes, usrRes, enrRes, palRes, gradesRes] = await Promise.all([
+    sb.from('students').select('*').eq('id', sid).maybeSingle(),
+    sb.from('users').select('nom,postnom,prenom,code_id').eq('id', sid).maybeSingle(),
     sb.from('student_enrollments').select('decision,promotions(nom)').eq('student_id', sid).eq('academic_year_id', yid).maybeSingle(),
     sb.from('palmares').select('moyenne,rang,mention,decision').eq('student_id', sid).eq('academic_year_id', yid).maybeSingle(),
     byYear(sb.from('grades').select('note,note_max,type_evaluation,intitule,course_id,created_at').eq('student_id', sid).order('created_at'))
   ]);
-  if(!stu){ alert("Dossier étudiant introuvable."); return; }
-  if(!enr){ alert("Cet étudiant n'a pas d'inscription pour l'année " + year + "."); return; }
+  const stu = stuRes.data ? { ...stuRes.data, users: usrRes.data || {} } : null;
+  const enr = enrRes.data, pal = palRes.data, grades = gradesRes.data;
+  if(!stu){ alert("Dossier étudiant introuvable." + (stuRes.error ? "\n" + stuRes.error.message : "")); return; }
+  if(!enr){ alert("Cet étudiant n'a pas d'inscription pour l'année " + year + "." + (enrRes.error ? "\n" + enrRes.error.message : "")); return; }
 
   const u = stu.users || {};
   const nom = [u.nom, u.postnom, u.prenom].filter(Boolean).join(' ') || stu.matricule;
