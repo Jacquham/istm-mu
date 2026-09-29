@@ -442,6 +442,8 @@ async function openUserDetail(id){
       </select>
       <button class="mini-btn" onclick="changePromotion('${id}')">Mettre à jour la promotion</button>`;
 
+    body += docsSectionHtml(id);
+
     const [{data:grades},{data:att},{data:pay}] = await Promise.all([
       byYear(sb.from('grades').select('*').eq('student_id', id).order('created_at',{ascending:false}).limit(10)),
       byYear(sb.from('attendance').select('*').eq('student_id', id).order('date_seance',{ascending:false}).limit(10)),
@@ -612,6 +614,7 @@ async function loadHomeStudent(profile){
     </div>
     <h2 class="sec">Situation financière</h2>
     <div class="list-item"><div><div class="t">Solde restant</div></div><span class="badge ${soldeTotal>0?'b-warn':'b-ok'}">${soldeTotal} CDF</span></div>`;
+  homePanel.insertAdjacentHTML('beforeend', docsSectionHtml(profile.id));
 
   coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${esc(g.intitule||g.type_evaluation)}</div><div class="s">${esc(g.type_evaluation)}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
@@ -1684,6 +1687,116 @@ async function runBackup(){
   const y = (window.__curYear && window.__curYear.libelle) ? '_' + window.__curYear.libelle : '';
   XLSX.writeFile(wb, `ISTM-MU_sauvegarde${y}_${localToday()}.xlsx`);
   status.textContent = `Sauvegarde générée : ${total} ligne(s).` + (skipped.length ? ` Non exportées (accès ou table absente) : ${skipped.join(', ')}.` : '');
+}
+
+// ================= RELEVÉS ET ATTESTATIONS (PDF) =================
+function docsSectionHtml(sid){
+  return `<h2 class="sec">Documents de l'étudiant (PDF)</h2>
+    <div class="note">Générés pour l'année choisie dans le sélecteur en haut de l'écran.</div>
+    <button class="mini-btn" onclick="downloadStudentDoc('releve','${sid}')">Relevé de notes</button>
+    <button class="mini-btn" onclick="downloadStudentDoc('inscription','${sid}')">Attestation d'inscription</button>
+    <button class="mini-btn" onclick="downloadStudentDoc('reussite','${sid}')">Attestation de réussite</button>`;
+}
+
+function docHeaderPdf(doc){
+  try { const img = document.querySelector('#gate .logo img'); if(img) doc.addImage(img.src, 'JPEG', 14, 10, 17, 17); } catch(e) {}
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('ISTM-TSHIKAPA', 35, 15);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text('Section Sciences Infirmières', 35, 20);
+  doc.text("Médecine d'Urgence - Anesthésie-Réanimation", 35, 25);
+}
+
+function docFooterPdf(doc, y){
+  const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+  if(y > ph - 60){ doc.addPage(); y = 25; }
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text('Fait à Tshikapa, le ' + new Date().toLocaleDateString('fr-FR'), pw - 14, y + 8, { align: 'right' });
+  doc.text('Le Responsable de la section', pw - 14, y + 16, { align: 'right' });
+  doc.setFontSize(7.5); doc.setTextColor(110);
+  doc.text(doc.splitTextToSize("Document généré automatiquement par la plateforme ISTM-MU. Il n'a valeur officielle qu'après signature et cachet de l'administration.", pw - 28), 14, ph - 12);
+  doc.setTextColor(0);
+}
+
+async function downloadStudentDoc(kind, sid){
+  if(!(window.jspdf && window.jspdf.jsPDF)){ alert("Le module PDF n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
+  const yid = vy();
+  if(!yid){ alert("Aucune année académique sélectionnée."); return; }
+  const year = yearLabel(yid);
+  const [{ data: stu }, { data: enr }, { data: pal }, { data: grades }] = await Promise.all([
+    sb.from('students').select('id,matricule,sexe,date_naissance,lieu_naissance,users:id(nom,postnom,prenom,code_id)').eq('id', sid).maybeSingle(),
+    sb.from('student_enrollments').select('decision,promotions(nom)').eq('student_id', sid).eq('academic_year_id', yid).maybeSingle(),
+    sb.from('palmares').select('moyenne,rang,mention,decision').eq('student_id', sid).eq('academic_year_id', yid).maybeSingle(),
+    byYear(sb.from('grades').select('note,note_max,type_evaluation,intitule,course_id,created_at').eq('student_id', sid).order('created_at'))
+  ]);
+  if(!stu){ alert("Dossier étudiant introuvable."); return; }
+  if(!enr){ alert("Cet étudiant n'a pas d'inscription pour l'année " + year + "."); return; }
+
+  const u = stu.users || {};
+  const nom = [u.nom, u.postnom, u.prenom].filter(Boolean).join(' ') || stu.matricule;
+  const promo = enr.promotions ? enr.promotions.nom : '-';
+  const ident = stu.matricule || u.code_id || '';
+  const list = (grades || []).filter(g => Number(g.note_max) > 0);
+  const moy = list.length ? list.reduce((s,g) => s + Number(g.note)/Number(g.note_max)*20, 0) / list.length : null;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.getWidth();
+  docHeaderPdf(doc);
+
+  if(kind === 'releve'){
+    if(!list.length){ alert("Aucune note enregistrée pour l'année " + year + "."); return; }
+    const cids = [...new Set(list.map(g => g.course_id).filter(Boolean))];
+    const cmap = {};
+    if(cids.length){
+      const { data: cs } = await sb.from('courses').select('id,code,intitule').in('id', cids);
+      (cs || []).forEach(c => { cmap[c.id] = c.code + ' - ' + c.intitule; });
+    }
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('RELEVÉ DE NOTES', pw/2, 40, { align: 'center' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    const info = [`Nom : ${nom}`, `Matricule : ${ident}`, `Promotion : ${promo}`, `Année académique : ${year}`];
+    let y = 50; info.forEach(t => { doc.text(t, 14, y); y += 6; });
+    doc.autoTable({
+      startY: y + 2,
+      head: [['Cours', 'Évaluation', 'Note', 'Sur 20']],
+      body: list.map(g => [
+        cmap[g.course_id] || '-',
+        String(g.type_evaluation || '').replace(/_/g,' ') + (g.intitule ? ' : ' + g.intitule : ''),
+        `${g.note}/${g.note_max}`,
+        (Number(g.note)/Number(g.note_max)*20).toFixed(2)
+      ]),
+      styles: { fontSize: 8.5, cellPadding: 1.8 }, headStyles: { fillColor: [11, 61, 100] },
+      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' } },
+      margin: { left: 14, right: 14, bottom: 30 }
+    });
+    y = doc.lastAutoTable.finalY + 8;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+    doc.text(`Moyenne générale : ${moy.toFixed(2)} / 20  -  Mention : ${mention(moy)}`, 14, y); y += 6;
+    doc.setFont('helvetica','normal');
+    if(pal){ doc.text(`Rang : ${pal.rang}  -  Décision : ${pal.decision}`, 14, y); y += 6; }
+    docFooterPdf(doc, y + 4);
+    doc.save(`Releve_${ident}_${year}.pdf`);
+    return;
+  }
+
+  const civ = stu.sexe === 'F' ? 'Madame' : (stu.sexe === 'M' ? 'Monsieur' : "L'étudiant(e)");
+  const naiss = stu.date_naissance ? `, né(e) le ${new Date(stu.date_naissance).toLocaleDateString('fr-FR')}${stu.lieu_naissance ? ' à ' + stu.lieu_naissance : ''}` : '';
+  doc.setFont('helvetica','bold'); doc.setFontSize(15);
+  let text, title;
+  if(kind === 'inscription'){
+    title = "ATTESTATION D'INSCRIPTION";
+    text = `Le Responsable de la section Médecine d'Urgence - Anesthésie-Réanimation atteste que ${civ} ${nom}${naiss}, matricule ${ident}, est régulièrement inscrit(e) en ${promo} pour l'année académique ${year}.`;
+  } else {
+    if(!pal || pal.decision !== 'Réussite'){ alert("Aucune décision de réussite disponible pour l'année " + year + " (le palmarès doit être généré et publié)."); return; }
+    title = 'ATTESTATION DE RÉUSSITE';
+    text = `Le Responsable de la section Médecine d'Urgence - Anesthésie-Réanimation atteste que ${civ} ${nom}${naiss}, matricule ${ident}, a réussi l'année académique ${year} en ${promo}, avec la moyenne de ${Number(pal.moyenne).toFixed(2)} / 20 (mention ${pal.mention}), classé(e) au rang ${pal.rang}.`;
+  }
+  doc.text(title, pw/2, 45, { align: 'center' });
+  doc.setFont('helvetica','normal'); doc.setFontSize(11.5);
+  const lines = doc.splitTextToSize(text, pw - 40);
+  doc.text(lines, 20, 65, { lineHeightFactor: 1.6 });
+  doc.text("En foi de quoi, la présente attestation lui est délivrée pour servir et valoir ce que de droit.", 20, 65 + lines.length * 8 + 10, { maxWidth: pw - 40, lineHeightFactor: 1.6 });
+  docFooterPdf(doc, 65 + lines.length * 8 + 30);
+  doc.save(`${kind === 'inscription' ? 'Attestation_inscription' : 'Attestation_reussite'}_${ident}_${year}.pdf`);
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
