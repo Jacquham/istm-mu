@@ -119,6 +119,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
   <div style="margin-top:14px;" id="gateLinks">
     <button style="background:none;border:none;color:#cfe1ee;font-size:12.5px;text-decoration:underline;" onclick="showSignup()">Créer un compte</button>
+    <div style="margin-top:8px;"><a href="confidentialite.html" style="color:#cfe1ee;font-size:11.5px;">Politique de confidentialité</a></div>
   </div>
 
   <div class="pickcard hidden" id="signupCard" style="margin-top:10px;text-align:left;">
@@ -1846,5 +1847,16 @@ sb.auth.getSession().then(({data})=>{ if(data.session) loadProfileAndEnter(); })
   </div>
   <div class="detail-body" id="detailBody">Chargement…</div>
 </div>
+<div id="offlineBar" style="display:none;position:fixed;left:0;right:0;top:0;z-index:9999;background:#b45309;color:#fff;font-size:12.5px;text-align:center;padding:calc(6px + env(safe-area-inset-top, 0px)) 10px 6px;">Hors connexion — les données ne sont pas à jour</div>
+<script>
+// Mode hors-ligne : enregistrement du service worker + bandeau d'état
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+function updateOnlineBar(){ document.getElementById('offlineBar').style.display = navigator.onLine ? 'none' : 'block'; }
+window.addEventListener('online', updateOnlineBar);
+window.addEventListener('offline', updateOnlineBar);
+updateOnlineBar();
+</script>
 </body>
 </html>
