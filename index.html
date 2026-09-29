@@ -1660,7 +1660,71 @@ async function openCourseTeacher(cid){
       <input id="gr_${s.id}" type="number" step="0.1" placeholder="Note" style="width:80px;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></div>`);
   if((studs||[]).length) body += `<button class="mini-btn" onclick="saveGradesTeacher('${cid}')">Enregistrer les notes</button>`;
 
+  body += await courseMaterialsSection(cid);
   document.getElementById('detailBody').innerHTML = body;
+}
+
+async function openCourseAdmin(cid){
+  const c = (window.__adminCourses||[]).find(x => x.id === cid);
+  document.getElementById('detailName').textContent = c ? `${c.code} — ${c.intitule}` : 'Cours';
+  document.getElementById('detailRole').textContent = 'Gestion des supports';
+  document.getElementById('detailBody').innerHTML = 'Chargement…';
+  document.getElementById('detailOverlay').classList.add('show');
+  document.getElementById('detailBody').innerHTML = await courseMaterialsSection(cid);
+}
+
+async function courseMaterialsSection(cid){
+  const { data: mats } = await sb.from('course_materials').select('*').eq('course_id', cid).order('created_at',{ascending:false});
+  window.__courseMats = mats || [];
+  const typeIcon = { pdf:'📄', word:'📝', powerpoint:'📊', video:'🎬', image:'🖼️', lien:'🔗' };
+  let h = `<h2 class="sec">Supports de cours</h2>`;
+  h += fmtEmpty(mats, m => `<div class="list-item clickable" onclick="openMaterial('${m.id}')"><div><div class="t">${typeIcon[m.type_fichier]||'📎'} ${m.titre}</div><div class="s">${m.type_fichier}</div></div></div>`);
+  h += `<input class="mini-input" id="matTitre" placeholder="Titre du support (ex: Chapitre 1 - Introduction)">
+    <select class="mini-input" id="matType" onchange="onMatTypeChange()">
+      <option value="pdf">PDF</option><option value="word">Word</option><option value="powerpoint">PowerPoint</option>
+      <option value="video">Vidéo</option><option value="image">Image</option><option value="lien">Lien</option>
+    </select>
+    <div id="matFileWrap"><input type="file" id="matFile" style="color:var(--text);font-size:12px;margin-bottom:8px;"></div>
+    <div id="matLinkWrap" class="hidden"><input class="mini-input" id="matLink" placeholder="https://..."></div>
+    <button class="mini-btn" onclick="addMaterial('${cid}')">Publier le support</button>`;
+  return h;
+}
+
+function onMatTypeChange(){
+  const isLink = document.getElementById('matType').value === 'lien';
+  document.getElementById('matFileWrap').classList.toggle('hidden', isLink);
+  document.getElementById('matLinkWrap').classList.toggle('hidden', !isLink);
+}
+
+async function addMaterial(cid){
+  const titre = document.getElementById('matTitre').value.trim();
+  const type_fichier = document.getElementById('matType').value;
+  if(!titre){ alert('Le titre est obligatoire.'); return; }
+  let file_url;
+  if(type_fichier === 'lien'){
+    file_url = document.getElementById('matLink').value.trim();
+    if(!file_url){ alert('Colle un lien.'); return; }
+  } else {
+    const file = document.getElementById('matFile').files[0];
+    if(!file){ alert('Choisis un fichier.'); return; }
+    if(file.size > 25*1024*1024){ alert('Fichier trop volumineux (25 Mo maximum).'); return; }
+    const path = `course-materials/${cid}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await sb.storage.from('documents').upload(path, file, { upsert: true });
+    if(upErr){ alert("Erreur d'envoi : " + upErr.message); return; }
+    file_url = path;
+  }
+  const { error } = await sb.from('course_materials').insert({ course_id: cid, titre, type_fichier, file_url, uploaded_by: currentProfile.id });
+  if(error){ alert("Erreur : " + error.message); return; }
+  if(currentProfile.role === 'enseignant') openCourseTeacher(cid); else openCourseAdmin(cid);
+}
+
+async function openMaterial(matId){
+  const m = (window.__courseMats||[]).find(x => x.id === matId);
+  if(!m) return;
+  if(m.type_fichier === 'lien'){ window.open(m.file_url, '_blank'); return; }
+  const { data, error } = await sb.storage.from('documents').createSignedUrl(m.file_url, 600);
+  if(error){ alert("Erreur : " + error.message); return; }
+  window.open(data.signedUrl, '_blank');
 }
 
 async function saveAttendance(cid){
@@ -1710,7 +1774,8 @@ async function loadScheduleAdmin(){
   const promoOptions = (promos||[]).map(p=>`<option value="${p.id}">${p.nom}</option>`).join('');
   const teacherOptions = (teachers||[]).map(t=>`<option value="${t.id}">${(t.users&&t.users.nom)||''} ${(t.users&&t.users.prenom)||''}</option>`).join('');
 
-  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => `<div class="list-item"><div><div class="t">${c.code} — ${c.intitule}</div></div></div>`);
+  window.__adminCourses = courses || [];
+  let h = `<h2 class="sec">Cours (touche pour gérer les supports)</h2>` + fmtEmpty(courses, c => `<div class="list-item clickable" onclick="openCourseAdmin('${c.id}')"><div><div class="t">${c.code} — ${c.intitule}</div></div></div>`);
   h += `<input class="mini-input" id="cCode" placeholder="Code du cours (ex: MU101)">
     <input class="mini-input" id="cIntitule" placeholder="Intitulé du cours">
     <select class="mini-input" id="cPromo"><option value="">— Promotion —</option>${promoOptions}</select>
