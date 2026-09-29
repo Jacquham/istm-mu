@@ -357,11 +357,11 @@ async function loadHomeAdmin(){
 }
 
 async function loadAccountsAdmin(){
-  const { data: pending } = await sb.from('users').select('id,nom,postnom,prenom,role,created_at').eq('compte_status','en_attente').order('created_at',{ascending:true});
-  const { data: rows } = await sb.from('users').select('id,nom,postnom,prenom,role,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).limit(30);
+  const { data: pending } = await sb.from('users').select('id,nom,postnom,prenom,role,code_id,created_at').eq('compte_status','en_attente').order('created_at',{ascending:true});
+  const { data: rows } = await sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).limit(30);
   const panel = document.querySelector('.tab-panel[data-tab="accounts"]');
   let h = '<h2 class="sec">Comptes en attente de validation</h2>';
-  h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${roleLabels[r.role]||r.role} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
+  h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${r.code_id ? r.code_id + ' · ' : ''}${roleLabels[r.role]||r.role} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
       <div style="display:flex;gap:6px;">
         <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','valide')">Valider</button>
         <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','refuse')">Refuser</button>
@@ -370,7 +370,7 @@ async function loadAccountsAdmin(){
   const badge = r => r.compte_status==='valide' ? 'b-ok' : (r.compte_status==='en_attente' ? 'b-warn' : 'b-bad');
   const label = r => ({valide:'Actif', en_attente:'En attente', refuse:'Refusé', suspendu:'Suspendu'})[r.compte_status] || r.compte_status;
   window.__accountsCache = rows || [];
-  h += fmtEmpty(rows, r => `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${roleLabels[r.role]||r.role}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`);
+  h += fmtEmpty(rows, r => `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${r.code_id ? r.code_id + ' · ' : ''}${roleLabels[r.role]||r.role}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`);
   panel.innerHTML = h;
 }
 
@@ -385,6 +385,7 @@ async function openUserDetail(id){
   document.getElementById('detailOverlay').classList.add('show');
 
   let body = `<h2 class="sec">Profil</h2>
+    <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(u.code_id)}</div></div></div>
     <div class="list-item"><div><div class="t">Email</div><div class="s">${fld(u.email)}</div></div></div>
     <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(u.telephone)}</div></div></div>`;
 
@@ -395,7 +396,7 @@ async function openUserDetail(id){
     if(!stu){
       body += `<h2 class="sec">Dossier académique</h2>
         <div class="note">Pas encore de dossier étudiant (matricule non assigné).</div>
-        <input class="mini-input" id="newMatricule" placeholder="Matricule à attribuer (ex: 26-MU-045)">
+        <input class="mini-input" id="newMatricule" placeholder="Matricule (laisser vide = ID automatique)">
         <select class="mini-input" id="newPromo"><option value="">— Choisir une promotion —</option>${promoOptions}</select>
         <button class="mini-btn" onclick="completeStudent('${id}')">Créer le dossier étudiant</button>`;
       document.getElementById('detailBody').innerHTML = body;
@@ -440,7 +441,7 @@ async function openUserDetail(id){
     if(!tea){
       body += `<h2 class="sec">Dossier enseignant</h2>
         <div class="note">Pas encore de dossier enseignant.</div>
-        <input class="mini-input" id="newMatEns" placeholder="Matricule enseignant">
+        <input class="mini-input" id="newMatEns" placeholder="Matricule enseignant (vide = ID automatique)">
         <input class="mini-input" id="newSpec" placeholder="Spécialité">
         <button class="mini-btn" onclick="completeTeacher('${id}')">Créer le dossier enseignant</button>`;
     } else {
@@ -456,8 +457,7 @@ function closeDetail(){ document.getElementById('detailOverlay').classList.remov
 async function completeStudent(id){
   const matricule = document.getElementById('newMatricule').value.trim();
   const promotion_id = document.getElementById('newPromo').value || null;
-  if(!matricule){ alert('Merci de saisir un matricule.'); return; }
-  const { error } = await sb.from('students').insert({ id, matricule, promotion_id });
+  const { error } = await sb.from('students').insert({ id, matricule: matricule || null, promotion_id });
   if(error){ alert("Erreur : " + error.message); return; }
   openUserDetail(id);
 }
