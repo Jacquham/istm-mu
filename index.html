@@ -208,6 +208,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
     </div>
 
     <div class="tab-panel" data-tab="more">
+      <div id="palmaresSection"></div>
       <h2 class="sec">Annonces</h2>
       <div id="announcementsPublish"></div>
       <div id="announcementsList"><div class="note">Chargement…</div></div>
@@ -532,6 +533,7 @@ function enter(profile){
     document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<div class="note">Bientôt disponible.</div>';
   }
   loadAnnouncements(profile);
+  loadPalmares(profile);
   loadNotifications(profile);
   if(window.__justLoggedIn){ window.__justLoggedIn = false; logEvent('LOGIN', 'Connexion'); }
   if(!window.__notifTimer){ window.__notifTimer = setInterval(() => { if(currentProfile) loadNotifications(currentProfile); }, 60000); }
@@ -987,6 +989,129 @@ async function runReport(format){
     status.textContent = '';
     alert("Erreur lors de la génération : " + (e && e.message ? e.message : e));
   }
+}
+
+// ================= PALMARES =================
+function mention(m){
+  if(m >= 18) return 'Excellent';
+  if(m >= 16) return 'Très Bien';
+  if(m >= 14) return 'Bien';
+  if(m >= 12) return 'Assez Bien';
+  if(m >= 10) return 'Passable';
+  return 'Ajourné';
+}
+
+async function loadPalmares(profile){
+  const el = document.getElementById('palmaresSection');
+  if(!el) return;
+  if(profile.role === 'admin_central' || profile.role === 'admin_academique'){
+    if(!(await hasPermClient(profile,'resultats'))){ el.innerHTML = ''; return; }
+    await renderPalmaresAdmin();
+  } else if(profile.role === 'etudiant'){
+    await renderPalmaresStudent(profile);
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+async function hasPermClient(profile, perm){
+  if(profile.role === 'admin_central') return true;
+  if(profile.role !== 'admin_academique') return false;
+  const { data } = await sb.from('administrators').select('permissions').eq('id', profile.id).maybeSingle();
+  return !!(data && data.permissions && data.permissions[perm]);
+}
+
+async function renderPalmaresAdmin(){
+  const el = document.getElementById('palmaresSection');
+  const [{data:promos},{data:years}] = await Promise.all([
+    sb.from('promotions').select('id,nom,academic_year_id').order('niveau'),
+    sb.from('academic_years').select('id,libelle').order('libelle',{ascending:false})
+  ]);
+  const promoOpt = (promos||[]).map(p => `<option value="${p.id}" data-year="${p.academic_year_id||''}">${p.nom}</option>`).join('');
+  const yearOpt = (years||[]).map(y => `<option value="${y.id}">${y.libelle}</option>`).join('');
+  el.innerHTML = `<h2 class="sec">Palmarès des résultats</h2>
+    <select class="mini-input" id="pmPromo" onchange="onPmPromoChange()">${promoOpt}</select>
+    <select class="mini-input" id="pmYear">${yearOpt}</select>
+    <button class="mini-btn" onclick="generatePalmares()">Générer depuis les notes</button>
+    <div id="pmList"><div class="note">Choisis une promotion puis génère le classement.</div></div>`;
+  onPmPromoChange();
+}
+
+function onPmPromoChange(){
+  const sel = document.getElementById('pmPromo');
+  const opt = sel.options[sel.selectedIndex];
+  const y = opt ? opt.getAttribute('data-year') : '';
+  if(y) document.getElementById('pmYear').value = y;
+  refreshPalmaresList();
+}
+
+async function refreshPalmaresList(){
+  const promotion_id = document.getElementById('pmPromo').value;
+  const academic_year_id = document.getElementById('pmYear').value;
+  const listEl = document.getElementById('pmList');
+  if(!promotion_id){ listEl.innerHTML = '<div class="note">Aucune promotion disponible.</div>'; return; }
+  const { data: rows } = await sb.from('palmares').select('*, users:student_id(nom,prenom)').eq('promotion_id', promotion_id).eq('academic_year_id', academic_year_id).order('rang');
+  window.__pmRows = rows || [];
+  if(!(rows||[]).length){ listEl.innerHTML = '<div class="note">Pas encore de classement généré pour cette promotion/année.</div>'; return; }
+  const pub = rows[0].is_published;
+  let h = `<div class="note">Statut : ${pub ? "🟢 Publié (visible par les étudiants de cette promotion)" : "🔒 Non publié (visible par l'admin uniquement)"}</div>`;
+  h += `<button class="mini-btn" onclick="togglePublishPalmares(${!pub})">${pub ? 'Dépublier' : 'Publier'}</button>`;
+  h += rows.map(r => `<div class="list-item"><div><div class="t">${r.rang}. ${(r.users&&r.users.nom)||''} ${(r.users&&r.users.prenom)||''}</div><div class="s">${r.matricule||''} · ${r.moyenne}/20 · ${r.mention} · ${r.decision}</div></div></div>`).join('');
+  listEl.innerHTML = h;
+}
+
+async function generatePalmares(){
+  const promotion_id = document.getElementById('pmPromo').value;
+  const academic_year_id = document.getElementById('pmYear').value;
+  if(!promotion_id){ alert('Choisis une promotion.'); return; }
+  if(!confirm("Cela remplace le classement existant pour cette promotion/année par un nouveau calcul, non publié. Continuer ?")) return;
+
+  const { data: studs } = await sb.from('students').select('id,matricule').eq('promotion_id', promotion_id);
+  if(!(studs||[]).length){ alert('Aucun étudiant dans cette promotion.'); return; }
+  const ids = studs.map(s => s.id);
+  const { data: grades } = await sb.from('grades').select('student_id,note,note_max').in('student_id', ids);
+  const acc = {};
+  (grades||[]).forEach(g => { if(!(Number(g.note_max) > 0)) return; const a = acc[g.student_id] || (acc[g.student_id] = {sum:0,n:0}); a.sum += Number(g.note)/Number(g.note_max)*20; a.n++; });
+
+  const list = studs.map(s => { const a = acc[s.id]; const moy = a ? Math.round(a.sum/a.n*100)/100 : 0; return { s, moy, n: a?a.n:0 }; });
+  list.sort((x,y) => y.moy - x.moy);
+  let rang = 0, prevMoy = null;
+  const rows = list.map((x,i) => {
+    rang = (prevMoy !== null && x.moy === prevMoy) ? rang : i+1;
+    prevMoy = x.moy;
+    return {
+      academic_year_id: academic_year_id || null, promotion_id, student_id: x.s.id, matricule: x.s.matricule,
+      moyenne: x.moy, pourcentage: Math.round(x.moy/20*10000)/100, rang,
+      mention: mention(x.moy), decision: x.moy >= 10 ? 'Réussite' : 'Ajourné',
+      is_published: false, created_by: currentProfile.id
+    };
+  });
+
+  await sb.from('palmares').delete().eq('promotion_id', promotion_id).eq('academic_year_id', academic_year_id);
+  const { error } = await sb.from('palmares').insert(rows);
+  if(error){ alert("Erreur : " + error.message); return; }
+  alert(`Classement généré pour ${rows.length} étudiant(s), non publié.`);
+  refreshPalmaresList();
+}
+
+async function togglePublishPalmares(publish){
+  const promotion_id = document.getElementById('pmPromo').value;
+  const academic_year_id = document.getElementById('pmYear').value;
+  const { error } = await sb.from('palmares').update({ is_published: publish }).eq('promotion_id', promotion_id).eq('academic_year_id', academic_year_id);
+  if(error){ alert("Erreur : " + error.message); return; }
+  refreshPalmaresList();
+}
+
+async function renderPalmaresStudent(profile){
+  const el = document.getElementById('palmaresSection');
+  const { data: stu } = await sb.from('students').select('promotion_id').eq('id', profile.id).maybeSingle();
+  if(!stu || !stu.promotion_id){ el.innerHTML = ''; return; }
+  const { data: rows } = await sb.from('palmares').select('*, users:student_id(nom,prenom)').eq('promotion_id', stu.promotion_id).order('rang');
+  if(!(rows||[]).length){ el.innerHTML = ''; return; }
+  el.innerHTML = '<h2 class="sec">Palmarès de ma promotion</h2>' + rows.map(r => {
+    const mine = r.student_id === profile.id;
+    return `<div class="list-item" style="${mine?'border-color:var(--blue2);border-width:2px;':''}"><div><div class="t">${r.rang}. ${(r.users&&r.users.nom)||''} ${(r.users&&r.users.prenom)||''}${mine?' (Toi)':''}</div><div class="s">${r.moyenne}/20 · ${r.mention}</div></div><span class="badge ${r.decision==='Réussite'?'b-ok':'b-bad'}">${r.decision}</span></div>`;
+  }).join('');
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
