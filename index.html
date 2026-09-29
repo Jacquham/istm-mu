@@ -352,7 +352,7 @@ async function loadHomeAdmin(){
     </div>
     <h2 class="sec">Inscriptions en attente</h2>`;
   const rows = (pending.data || []);
-  html += fmtEmpty(rows, r => `<div class="list-item"><div><div class="t">${(r.users&&r.users.nom)||'Étudiant'}</div><div class="s">Demande d'inscription</div></div><span class="badge b-warn">À valider</span></div>`);
+  html += fmtEmpty(rows, r => `<div class="list-item"><div><div class="t">${esc((r.users&&r.users.nom)||'Étudiant')}</div><div class="s">Demande d'inscription</div></div><span class="badge b-warn">À valider</span></div>`);
   document.getElementById('panel-home').innerHTML = html;
 }
 
@@ -361,7 +361,7 @@ async function loadAccountsAdmin(){
   const { data: rows } = await sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).limit(30);
   const panel = document.querySelector('.tab-panel[data-tab="accounts"]');
   let h = '<h2 class="sec">Comptes en attente de validation</h2>';
-  h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${r.code_id ? r.code_id + ' · ' : ''}${roleLabels[r.role]||r.role} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
+  h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
       <div style="display:flex;gap:6px;">
         <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','valide')">Valider</button>
         <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','refuse')">Refuser</button>
@@ -370,11 +370,12 @@ async function loadAccountsAdmin(){
   const badge = r => r.compte_status==='valide' ? 'b-ok' : (r.compte_status==='en_attente' ? 'b-warn' : 'b-bad');
   const label = r => ({valide:'Actif', en_attente:'En attente', refuse:'Refusé', suspendu:'Suspendu'})[r.compte_status] || r.compte_status;
   window.__accountsCache = rows || [];
-  h += fmtEmpty(rows, r => `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${r.nom} ${r.prenom}</div><div class="s">${r.code_id ? r.code_id + ' · ' : ''}${roleLabels[r.role]||r.role}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`);
+  h += fmtEmpty(rows, r => `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`);
   panel.innerHTML = h;
 }
 
-function fld(v){ return (v===null||v===undefined||v==='') ? '<span style="color:var(--muted)">—</span>' : v; }
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function fld(v){ return (v===null||v===undefined||v==='') ? '<span style="color:var(--muted)">—</span>' : esc(v); }
 
 async function openUserDetail(id){
   const u = (window.__accountsCache||[]).find(x => x.id === id);
@@ -391,7 +392,7 @@ async function openUserDetail(id){
 
   if(u.role === 'etudiant'){
     const { data: promos } = await sb.from('promotions').select('id,nom').order('niveau');
-    const promoOptions = (promos||[]).map(p => `<option value="${p.id}">${p.nom}</option>`).join('');
+    const promoOptions = (promos||[]).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
     const { data: stu } = await sb.from('students').select('*, promotions(nom)').eq('id', id).maybeSingle();
     if(!stu){
       body += `<h2 class="sec">Dossier académique</h2>
@@ -416,7 +417,7 @@ async function openUserDetail(id){
       sb.from('payments').select('*').eq('student_id', id).order('created_at',{ascending:false}).limit(10)
     ]);
 
-    body += `<h2 class="sec">Notes</h2>` + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
+    body += `<h2 class="sec">Notes</h2>` + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${esc(g.intitule||g.type_evaluation)}</div><div class="s">${esc(g.type_evaluation)}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
     body += `<input class="mini-input" id="gIntitule" placeholder="Intitulé (ex: Interro biologie)">
       <select class="mini-input" id="gType"><option value="interrogation">Interrogation</option><option value="tp">TP</option><option value="td">TD</option><option value="examen">Examen</option><option value="examen_final">Examen final</option></select>
       <input class="mini-input" id="gNote" type="number" placeholder="Note obtenue" step="0.1">
@@ -428,7 +429,7 @@ async function openUserDetail(id){
       <select class="mini-input" id="aStatut"><option value="present">Présent</option><option value="absent">Absent</option><option value="retard">Retard</option><option value="justifie">Justifié</option></select>
       <button class="mini-btn" onclick="addAttendance('${id}')">Enregistrer la présence</button>`;
 
-    body += `<h2 class="sec">Paiements</h2>` + fmtEmpty(pay, p => `<div class="list-item"><div><div class="t">${p.type_frais}</div><div class="s">${p.montant_paye}/${p.montant} CDF</div></div><span class="badge ${p.statut==='paye'?'b-ok':(p.statut==='partiel'?'b-warn':'b-bad')}">${p.statut}</span></div>`);
+    body += `<h2 class="sec">Paiements</h2>` + fmtEmpty(pay, p => `<div class="list-item"><div><div class="t">${esc(p.type_frais)}</div><div class="s">${p.montant_paye}/${p.montant} CDF</div></div><span class="badge ${p.statut==='paye'?'b-ok':(p.statut==='partiel'?'b-warn':'b-bad')}">${p.statut}</span></div>`);
     body += `<input class="mini-input" id="pType" placeholder="Type de frais (ex: Minerval)">
       <input class="mini-input" id="pMontant" type="number" placeholder="Montant demandé (CDF)">
       <input class="mini-input" id="pPaye" type="number" placeholder="Montant déjà payé (CDF)" value="0">
@@ -577,7 +578,7 @@ async function loadHomeStudent(profile){
     <h2 class="sec">Situation financière</h2>
     <div class="list-item"><div><div class="t">Solde restant</div></div><span class="badge ${soldeTotal>0?'b-warn':'b-ok'}">${soldeTotal} CDF</span></div>`;
 
-  coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${g.intitule||g.type_evaluation}</div><div class="s">${g.type_evaluation}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
+  coursesPanel.innerHTML = '<h2 class="sec">Mes notes</h2>' + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${esc(g.intitule||g.type_evaluation)}</div><div class="s">${esc(g.type_evaluation)}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
 }
 const permKeys = [
   ['etudiants', 'Étudiants (créer et modifier les dossiers)'],
@@ -620,7 +621,7 @@ async function loadSystemAdmin(){
     h += (admins||[]).map(a => {
       const p = perms[a.id] || {};
       const boxes = permKeys.map(k => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:7px 0;"><input type="checkbox" id="perm_${a.id}_${k[0]}" ${p[k[0]] ? 'checked' : ''}> ${k[1]}</label>`).join('');
-      return `<div class="stat" style="margin-bottom:10px;"><b style="font-size:15px;">${a.nom} ${a.prenom}</b>${boxes}<button class="mini-btn" style="margin:8px 0 0;" onclick="savePerms('${a.id}')">Enregistrer les permissions</button></div>`;
+      return `<div class="stat" style="margin-bottom:10px;"><b style="font-size:15px;">${esc(a.nom)} ${esc(a.prenom)}</b>${boxes}<button class="mini-btn" style="margin:8px 0 0;" onclick="savePerms('${a.id}')">Enregistrer les permissions</button></div>`;
     }).join('');
   }
 
@@ -628,7 +629,7 @@ async function loadSystemAdmin(){
     <button class="mini-btn" onclick="loadSystemAdmin()">Actualiser</button>`;
   h += fmtEmpty(logs, l => {
     const b = actionLabels[l.action] || ['b-warn', l.action];
-    return `<div class="list-item"><div><div class="t">${l.description || l.action}</div><div class="s">${l.user_id ? (names[l.user_id] || 'Utilisateur') : 'Système'} · ${new Date(l.created_at).toLocaleString('fr-FR')}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`;
+    return `<div class="list-item"><div><div class="t">${esc(l.description || l.action)}</div><div class="s">${esc(l.user_id ? (names[l.user_id] || 'Utilisateur') : 'Système')} · ${new Date(l.created_at).toLocaleString('fr-FR')}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`;
   });
   panel.innerHTML = h;
 }
@@ -660,7 +661,7 @@ async function loadCaisse(){
   const panel = document.querySelector('.tab-panel[data-tab="finance"]');
   const { data: ops, error } = await sb.from('finance_operations').select('*')
     .order('date_operation',{ascending:false}).order('created_at',{ascending:false}).limit(1000);
-  if(error){ panel.innerHTML = finSwitcher('caisse') + `<div class="note">Impossible de charger la caisse : ${error.message}</div>`; return; }
+  if(error){ panel.innerHTML = finSwitcher('caisse') + `<div class="note">Impossible de charger la caisse : ${esc(error.message)}</div>`; return; }
   const list = ops || [];
   window.__caisseOps = list;
   const uids = [...new Set(list.map(o => o.created_by).filter(Boolean))];
@@ -723,7 +724,7 @@ function renderCaisseList(){
   if(p === 'annee') list = list.filter(o => o.date_operation.startsWith(today.slice(0,4)));
   const names = window.__caisseNames || {};
   const isCentral = currentProfile && currentProfile.role === 'admin_central';
-  document.getElementById('caisseList').innerHTML = fmtEmpty(list.slice(0,60), o => `<div class="list-item"><div><div class="t">${o.numero||''} — ${o.motif}</div><div class="s">${o.categorie||''} · ${new Date(o.date_operation).toLocaleDateString('fr-FR')} · ${o.created_by ? (names[o.created_by]||'') : 'Système'}${o.source_payment_id?' · automatique':''}${o.observation?' · '+o.observation:''}</div></div>
+  document.getElementById('caisseList').innerHTML = fmtEmpty(list.slice(0,60), o => `<div class="list-item"><div><div class="t">${esc(o.numero||'')} — ${esc(o.motif)}</div><div class="s">${esc(o.categorie||'')} · ${new Date(o.date_operation).toLocaleDateString('fr-FR')} · ${esc(o.created_by ? (names[o.created_by]||'') : 'Système')}${o.source_payment_id?' · automatique':''}${esc(o.observation?' · '+o.observation:'')}</div></div>
       <div style="display:flex;gap:6px;align-items:center;"><span class="badge ${o.type==='recette'?'b-ok':'b-bad'}">${o.type==='recette'?'+':'−'} ${fmtMoney(o.montant)}</span>${isCentral?`<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:5px 8px;font-size:11px;" onclick="deleteOperation('${o.id}')">Suppr.</button>`:''}</div></div>`);
 }
 
@@ -907,7 +908,7 @@ const REPORTS = {
 
 function reportsSection(promos){
   const opts = Object.keys(REPORTS).map(k => `<option value="${k}">${REPORTS[k][0]}</option>`).join('');
-  const po = (promos || []).map(p => `<option value="${p.id}">${p.nom}</option>`).join('');
+  const po = (promos || []).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
   const cap = 'font-size:11.5px;color:var(--muted);display:block;margin:2px 0 4px;';
   return `<h2 class="sec">Rapports (PDF / Excel)</h2>
     <select class="mini-input" id="repType">${opts}</select>
@@ -1033,8 +1034,8 @@ async function renderPalmaresAdmin(){
     sb.from('promotions').select('id,nom,academic_year_id').order('niveau'),
     sb.from('academic_years').select('id,libelle').order('libelle',{ascending:false})
   ]);
-  const promoOpt = (promos||[]).map(p => `<option value="${p.id}" data-year="${p.academic_year_id||''}">${p.nom}</option>`).join('');
-  const yearOpt = (years||[]).map(y => `<option value="${y.id}">${y.libelle}</option>`).join('');
+  const promoOpt = (promos||[]).map(p => `<option value="${p.id}" data-year="${p.academic_year_id||''}">${esc(p.nom)}</option>`).join('');
+  const yearOpt = (years||[]).map(y => `<option value="${y.id}">${esc(y.libelle)}</option>`).join('');
   el.innerHTML = `<h2 class="sec">Palmarès des résultats</h2>
     <select class="mini-input" id="pmPromo" onchange="onPmPromoChange()">${promoOpt}</select>
     <select class="mini-input" id="pmYear">${yearOpt}</select>
@@ -1062,7 +1063,7 @@ async function refreshPalmaresList(){
   const pub = rows[0].is_published;
   let h = `<div class="note">Statut : ${pub ? "🟢 Publié (visible par les étudiants de cette promotion)" : "🔒 Non publié (visible par l'admin uniquement)"}</div>`;
   h += `<button class="mini-btn" onclick="togglePublishPalmares(${!pub})">${pub ? 'Dépublier' : 'Publier'}</button>`;
-  h += rows.map(r => `<div class="list-item"><div><div class="t">${r.rang}. ${(r.users&&r.users.nom)||''} ${(r.users&&r.users.prenom)||''}</div><div class="s">${r.matricule||''} · ${r.moyenne}/20 · ${r.mention} · ${r.decision}</div></div></div>`).join('');
+  h += rows.map(r => `<div class="list-item"><div><div class="t">${r.rang}. ${esc((r.users&&r.users.nom)||'')} ${esc((r.users&&r.users.prenom)||'')}</div><div class="s">${esc(r.matricule||'')} · ${r.moyenne}/20 · ${esc(r.mention)} · ${esc(r.decision)}</div></div></div>`).join('');
   listEl.innerHTML = h;
 }
 
@@ -1116,7 +1117,7 @@ async function renderPalmaresStudent(profile){
   if(!(rows||[]).length){ el.innerHTML = ''; return; }
   el.innerHTML = '<h2 class="sec">Palmarès de ma promotion</h2>' + rows.map(r => {
     const mine = r.student_id === profile.id;
-    return `<div class="list-item" style="${mine?'border-color:var(--blue2);border-width:2px;':''}"><div><div class="t">${r.rang}. ${(r.users&&r.users.nom)||''} ${(r.users&&r.users.prenom)||''}${mine?' (Toi)':''}</div><div class="s">${r.moyenne}/20 · ${r.mention}</div></div><span class="badge ${r.decision==='Réussite'?'b-ok':'b-bad'}">${r.decision}</span></div>`;
+    return `<div class="list-item" style="${mine?'border-color:var(--blue2);border-width:2px;':''}"><div><div class="t">${r.rang}. ${esc((r.users&&r.users.nom)||'')} ${esc((r.users&&r.users.prenom)||'')}${mine?' (Toi)':''}</div><div class="s">${r.moyenne}/20 · ${esc(r.mention)}</div></div><span class="badge ${esc(r.decision==='Réussite'?'b-ok':'b-bad')}">${esc(r.decision)}</span></div>`;
   }).join('');
 }
 
@@ -1128,7 +1129,7 @@ async function stageSectionAdmin(studentId){
     sb.from('internships').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
     sb.from('teachers').select('id,users:id(nom,prenom)')
   ]);
-  const teacherOptions = (teachers||[]).map(t => `<option value="${t.id}">${(t.users&&t.users.nom)||''} ${(t.users&&t.users.prenom)||''}</option>`).join('');
+  const teacherOptions = (teachers||[]).map(t => `<option value="${t.id}">${esc((t.users&&t.users.nom)||'')} ${esc((t.users&&t.users.prenom)||'')}</option>`).join('');
   let h = `<h2 class="sec">Stage</h2>`;
   h += fmtEmpty(stages, s => stageCardAdmin(s));
   h += `<div class="note">Nouveau stage :</div>
@@ -1147,10 +1148,10 @@ async function stageSectionAdmin(studentId){
 
 function stageCardAdmin(s){
   const b = stageStatutLabels[s.statut] || ['b-warn', s.statut];
-  return `<div class="list-item"><div><div class="t">${s.lieu_stage}${s.service?' — '+s.service:''}</div>
+  return `<div class="list-item"><div><div class="t">${esc(s.lieu_stage)}${esc(s.service?' — '+s.service:'')}</div>
       <div class="s">${s.date_debut?new Date(s.date_debut).toLocaleDateString('fr-FR'):''} → ${s.date_fin?new Date(s.date_fin).toLocaleDateString('fr-FR'):''}${s.rapport_url?' · rapport déposé':''}</div>
       ${s.rapport_url?`<button class="mini-btn" style="margin:6px 0;width:auto;padding:6px 12px;font-size:11.5px;" onclick="viewRapport('${s.id}')">Voir le rapport</button>`:''}
-      <input class="mini-input" id="stApp_${s.id}" placeholder="Appréciation" value="${s.appreciation||''}">
+      <input class="mini-input" id="stApp_${s.id}" placeholder="Appréciation" value="${esc(s.appreciation||'')}">
       <input class="mini-input" id="stNote_${s.id}" type="number" placeholder="Note /20" value="${s.note_stage||''}">
       <div style="display:flex;gap:6px;">
         <button class="mini-btn" style="background:var(--green);" onclick="reviewInternship('${s.id}','valide')">Valider</button>
@@ -1201,10 +1202,10 @@ async function loadStagesTeacher(profile){
   if(!(stages||[]).length){ el.innerHTML = ''; return; }
   el.innerHTML = '<h2 class="sec">Stages à encadrer</h2>' + stages.map(s => {
     const b = stageStatutLabels[s.statut] || ['b-warn', s.statut];
-    return `<div class="list-item"><div><div class="t">${(s.users&&s.users.nom)||''} ${(s.users&&s.users.prenom)||''} — ${s.lieu_stage}</div>
-        <div class="s">${s.service||''}${s.rapport_url?' · rapport déposé':''}</div>
+    return `<div class="list-item"><div><div class="t">${esc((s.users&&s.users.nom)||'')} ${esc((s.users&&s.users.prenom)||'')} — ${esc(s.lieu_stage)}</div>
+        <div class="s">${esc(s.service||'')}${s.rapport_url?' · rapport déposé':''}</div>
         ${s.rapport_url?`<button class="mini-btn" style="margin:6px 0;width:auto;padding:6px 12px;font-size:11.5px;" onclick="viewRapport('${s.id}')">Voir le rapport</button>`:''}
-        <input class="mini-input" id="stApp_${s.id}" placeholder="Appréciation" value="${s.appreciation||''}">
+        <input class="mini-input" id="stApp_${s.id}" placeholder="Appréciation" value="${esc(s.appreciation||'')}">
         <input class="mini-input" id="stNote_${s.id}" type="number" placeholder="Note /20" value="${s.note_stage||''}">
         <div style="display:flex;gap:6px;">
           <button class="mini-btn" style="background:var(--green);" onclick="reviewInternshipTeacher('${s.id}')">Valider</button>
@@ -1233,10 +1234,10 @@ async function loadStageStudent(profile){
   el.innerHTML = '<h2 class="sec">Mon stage</h2>' + stages.map(s => {
     const b = stageStatutLabels[s.statut] || ['b-warn', s.statut];
     const canUpload = ['en_cours','termine','rejete'].includes(s.statut);
-    return `<div class="list-item"><div><div class="t">${s.lieu_stage}${s.service?' — '+s.service:''}</div>
-        <div class="s">${s.date_debut?new Date(s.date_debut).toLocaleDateString('fr-FR'):''} → ${s.date_fin?new Date(s.date_fin).toLocaleDateString('fr-FR'):''}${s.encadreur?' · Encadreur : '+s.encadreur:''}</div>
-        ${s.objectifs?`<div class="s">Objectifs : ${s.objectifs}</div>`:''}
-        ${s.appreciation?`<div class="s">Appréciation : ${s.appreciation}${s.note_stage!=null?' — '+s.note_stage+'/20':''}</div>`:''}
+    return `<div class="list-item"><div><div class="t">${esc(s.lieu_stage)}${esc(s.service?' — '+s.service:'')}</div>
+        <div class="s">${s.date_debut?new Date(s.date_debut).toLocaleDateString('fr-FR'):''} → ${s.date_fin?new Date(s.date_fin).toLocaleDateString('fr-FR'):''}${esc(s.encadreur?' · Encadreur : '+s.encadreur:'')}</div>
+        ${s.objectifs?`<div class="s">Objectifs : ${esc(s.objectifs)}</div>`:''}
+        ${s.appreciation?`<div class="s">Appréciation : ${esc(s.appreciation)}${s.note_stage!=null?' — '+s.note_stage+'/20':''}</div>`:''}
         ${s.rapport_url?`<button class="mini-btn" style="margin:6px 0;width:auto;padding:6px 12px;font-size:11.5px;" onclick="viewRapport('${s.id}')">Voir mon rapport déposé</button>`:''}
         ${canUpload?`<input type="file" accept="application/pdf" id="stFile_${s.id}" style="margin:8px 0;color:var(--text);font-size:12px;">
         <button class="mini-btn" onclick="uploadRapport('${s.id}')">Déposer le rapport (PDF)</button>`:''}
@@ -1282,7 +1283,7 @@ async function renderMessagesUser(profile){
 
   const thread = list.map(m => `<div class="list-item" style="${m.sender_id===profile.id?'':'border-color:var(--blue2);border-width:2px;'}">
       <div><div class="t">${m.sender_id===profile.id?'Toi → Administration':'Administration'}</div>
-      <div class="s">${m.contenu}</div>
+      <div class="s">${esc(m.contenu)}</div>
       <div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div></div>`).join('');
 
   el.innerHTML = `<h2 class="sec">Messagerie avec l'administration</h2>
@@ -1312,7 +1313,7 @@ async function renderMessagesAdmin(){
   }
   const { data: dest } = await sb.from('users').select('id,nom,prenom,role').eq('compte_status','valide').neq('id', currentProfile.id).order('nom');
   window.__msgDest = dest || [];
-  const destOptions = (dest||[]).map(d => `<option value="${d.id}">${d.nom} ${d.prenom} (${roleLabels[d.role]||d.role})</option>`).join('');
+  const destOptions = (dest||[]).map(d => `<option value="${d.id}">${esc(d.nom)} ${esc(d.prenom)} (${esc(roleLabels[d.role]||d.role)})</option>`).join('');
 
   const unread = (recu||[]).filter(m => !m.is_read && m.sender_id !== currentProfile.id).length;
 
@@ -1321,10 +1322,10 @@ async function renderMessagesAdmin(){
     <input class="mini-input" id="msgNewAdmin" placeholder="Message...">
     <button class="mini-btn" onclick="sendMessageAdmin()">Envoyer</button>
     <h2 class="sec">Reçus</h2>`;
-  h += fmtEmpty(recu, m => `<div class="list-item" style="${m.is_read?'':'border-color:var(--blue2);border-width:2px;'}"><div><div class="t">${names[m.sender_id]||'Utilisateur'}${m.recipient_id===null?" (à l'administration)":''}</div><div class="s">${m.contenu}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div>
+  h += fmtEmpty(recu, m => `<div class="list-item" style="${m.is_read?'':'border-color:var(--blue2);border-width:2px;'}"><div><div class="t">${esc(names[m.sender_id]||'Utilisateur')}${m.recipient_id===null?" (à l'administration)":''}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div>
       <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="replyTo('${m.sender_id}')">Répondre</button></div>`);
   h += `<h2 class="sec">Envoyés</h2>`;
-  h += fmtEmpty(envoyes, m => `<div class="list-item"><div><div class="t">À : ${names[m.recipient_id]||'—'}</div><div class="s">${m.contenu}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div></div>`);
+  h += fmtEmpty(envoyes, m => `<div class="list-item"><div><div class="t">À : ${esc(names[m.recipient_id]||'—')}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div></div>`);
   el.innerHTML = h;
 
   if(unread && recu && recu.length){
@@ -1369,17 +1370,17 @@ async function loadFinanceAdmin(){
   }
   const pending = (reqs||[]).filter(r => r.statut === 'en_attente');
   const treated = (reqs||[]).filter(r => r.statut !== 'en_attente').slice(0,10);
-  const promoOptions = (promos||[]).map(p => `<option value="${p.id}">${p.nom}</option>`).join('');
+  const promoOptions = (promos||[]).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
 
   let h = finSwitcher('etudiants') + `<h2 class="sec">Paiements à valider (${pending.length})</h2>`;
-  h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${names[r.student_id]||'Étudiant'} — ${fmtMoney(r.montant)}</div><div class="s">${r.contributions?r.contributions.reference+' '+r.contributions.titre:''} · ${r.mode_paiement||'—'} · réf. ${r.reference_paiement||'—'}</div></div>
+  h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${esc(names[r.student_id]||'Étudiant')} — ${fmtMoney(r.montant)}</div><div class="s">${esc(r.contributions?r.contributions.reference+' '+r.contributions.titre:'')} · ${esc(r.mode_paiement||'—')} · réf. ${esc(r.reference_paiement||'—')}</div></div>
       <div style="display:flex;gap:6px;">
         <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="reviewPayment('${r.id}','valide')">Valider</button>
         <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="reviewPayment('${r.id}','refuse')">Refuser</button>
       </div></div>`);
 
   h += `<h2 class="sec">Contributions</h2>`;
-  h += fmtEmpty(contribs, c => `<div class="list-item"><div><div class="t">${c.reference||''} — ${c.titre}</div><div class="s">${fmtMoney(c.montant)} · ${c.promotions?c.promotions.nom:'Toutes les promotions'}${c.date_limite?' · limite '+new Date(c.date_limite).toLocaleDateString('fr-FR'):''}</div></div></div>`);
+  h += fmtEmpty(contribs, c => `<div class="list-item"><div><div class="t">${esc(c.reference||'')} — ${esc(c.titre)}</div><div class="s">${fmtMoney(c.montant)} · ${esc(c.promotions?c.promotions.nom:'Toutes les promotions')}${c.date_limite?' · limite '+new Date(c.date_limite).toLocaleDateString('fr-FR'):''}</div></div></div>`);
   h += `<input class="mini-input" id="ctTitre" placeholder="Titre (ex: Activité de la Section)">
     <input class="mini-input" id="ctDesc" placeholder="Description / motif">
     <input class="mini-input" id="ctMontant" type="number" placeholder="Montant demandé (CDF)">
@@ -1389,11 +1390,11 @@ async function loadFinanceAdmin(){
     <button class="mini-btn" onclick="addContribution()">Créer la contribution</button>`;
 
   h += `<h2 class="sec">Derniers paiements traités</h2>`;
-  h += fmtEmpty(treated, r => { const b = prBadge(r.statut); return `<div class="list-item"><div><div class="t">${names[r.student_id]||'Étudiant'} — ${fmtMoney(r.montant)}</div><div class="s">${r.contributions?r.contributions.titre:''}${r.motif_refus?' · '+r.motif_refus:''}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`; });
+  h += fmtEmpty(treated, r => { const b = prBadge(r.statut); return `<div class="list-item"><div><div class="t">${esc(names[r.student_id]||'Étudiant')} — ${fmtMoney(r.montant)}</div><div class="s">${esc(r.contributions?r.contributions.titre:'')}${esc(r.motif_refus?' · '+r.motif_refus:'')}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`; });
 
   h += `<h2 class="sec">Paiements enregistrés manuellement</h2>`;
   const badge = s => s==='paye' ? 'b-ok' : (s==='partiel' ? 'b-warn' : 'b-bad');
-  h += fmtEmpty(pays, r => `<div class="list-item"><div><div class="t">${r.type_frais}</div><div class="s">${r.montant_paye}/${r.montant} CDF</div></div><span class="badge ${badge(r.statut)}">${r.statut}</span></div>`);
+  h += fmtEmpty(pays, r => `<div class="list-item"><div><div class="t">${esc(r.type_frais)}</div><div class="s">${r.montant_paye}/${r.montant} CDF</div></div><span class="badge ${badge(r.statut)}">${r.statut}</span></div>`);
   panel.innerHTML = h;
 }
 
@@ -1438,10 +1439,10 @@ async function loadFinanceStudent(profile){
   h += fmtEmpty(mine, c => {
     const paid = studentPaid(c.id);
     const solde = Number(c.montant) - paid;
-    return `<div class="list-item clickable" onclick="openContribution('${c.id}')"><div><div class="t">${c.reference||''} — ${c.titre}</div><div class="s">Demandé ${fmtMoney(c.montant)} · Payé ${fmtMoney(paid)}${c.date_limite?' · limite '+new Date(c.date_limite).toLocaleDateString('fr-FR'):''}</div></div><span class="badge ${solde<=0?'b-ok':'b-warn'}">${solde<=0?'Soldée':'Solde '+fmtMoney(solde)}</span></div>`;
+    return `<div class="list-item clickable" onclick="openContribution('${c.id}')"><div><div class="t">${esc(c.reference||'')} — ${esc(c.titre)}</div><div class="s">Demandé ${fmtMoney(c.montant)} · Payé ${fmtMoney(paid)}${c.date_limite?' · limite '+new Date(c.date_limite).toLocaleDateString('fr-FR'):''}</div></div><span class="badge ${solde<=0?'b-ok':'b-warn'}">${solde<=0?'Soldée':'Solde '+fmtMoney(solde)}</span></div>`;
   });
   h += `<h2 class="sec">Mes paiements envoyés</h2>`;
-  h += fmtEmpty(reqs, r => { const b = prBadge(r.statut); return `<div class="list-item"><div><div class="t">${fmtMoney(r.montant)} — ${r.contributions?r.contributions.titre:''}</div><div class="s">${new Date(r.created_at).toLocaleDateString('fr-FR')}${r.motif_refus?' · Motif : '+r.motif_refus:''}</div></div>
+  h += fmtEmpty(reqs, r => { const b = prBadge(r.statut); return `<div class="list-item"><div><div class="t">${fmtMoney(r.montant)} — ${esc(r.contributions?r.contributions.titre:'')}</div><div class="s">${new Date(r.created_at).toLocaleDateString('fr-FR')}${esc(r.motif_refus?' · Motif : '+r.motif_refus:'')}</div></div>
       <div style="display:flex;gap:6px;align-items:center;"><span class="badge ${b[0]}">${b[1]}</span>${r.statut==='en_attente'?`<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:5px 8px;font-size:11px;" onclick="cancelPayment('${r.id}')">Annuler</button>`:''}</div></div>`; });
   panel.innerHTML = h;
 }
@@ -1462,8 +1463,8 @@ function openContribution(cid){
     <div class="list-item"><div><div class="t">Déjà payé (validé)</div><div class="s">${fmtMoney(paid)}</div></div></div>
     <div class="list-item"><div><div class="t">Solde</div><div class="s">${fmtMoney(Math.max(solde,0))}</div></div></div>
     <div class="list-item"><div><div class="t">Date limite</div><div class="s">${c.date_limite?new Date(c.date_limite).toLocaleDateString('fr-FR'):'—'}</div></div></div>
-    <div class="list-item"><div><div class="t">Motif</div><div class="s">${c.description||'—'}</div></div></div>
-    <div class="list-item"><div><div class="t">Instructions de paiement</div><div class="s">${c.instructions||'—'}</div></div></div>`;
+    <div class="list-item"><div><div class="t">Motif</div><div class="s">${esc(c.description||'—')}</div></div></div>
+    <div class="list-item"><div><div class="t">Instructions de paiement</div><div class="s">${esc(c.instructions||'—')}</div></div></div>`;
   if(solde <= 0){
     body += `<div class="note">Cette contribution est soldée.</div>`;
   } else {
@@ -1504,7 +1505,7 @@ async function loadNotifications(profile){
   const unread = list.filter(n => !n.is_read).length;
   document.getElementById('alertDot').style.display = unread ? 'block' : 'none';
   const rows = list.length
-    ? list.map(n => `<div class="row">${n.is_read?'':'🔵 '}<b>${n.titre}</b><br><span style="color:var(--muted)">${n.message||''}</span><br><span style="color:var(--muted);font-size:11px">${new Date(n.created_at).toLocaleString('fr-FR')}</span></div>`).join('')
+    ? list.map(n => `<div class="row">${n.is_read?'':'🔵 '}<b>${esc(n.titre)}</b><br><span style="color:var(--muted)">${esc(n.message||'')}</span><br><span style="color:var(--muted);font-size:11px">${new Date(n.created_at).toLocaleString('fr-FR')}</span></div>`).join('')
     : `<div class="row">Aucune notification.</div>`;
   document.getElementById('alertsPanel').innerHTML = `<h3>Notifications</h3>${rows}<button class="close" onclick="toggleAlerts()">Fermer</button>`;
 }
@@ -1533,13 +1534,13 @@ async function loadHomeTeacher(profile){
       <div class="stat"><b>${nbStudents}</b><span>Mes étudiants</span></div>
     </div>
     <h2 class="sec">Aujourd'hui (${today})</h2>` +
-    fmtEmpty(todays, s => `<div class="list-item"><div><div class="t">${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">${s.promotions?s.promotions.nom:''} · Salle ${s.salle||'—'}</div></div></div>`);
+    fmtEmpty(todays, s => `<div class="list-item"><div><div class="t">${esc(s.heure_debut)} — ${esc(s.courses?s.courses.intitule:'')}</div><div class="s">${esc(s.promotions?s.promotions.nom:'')} · Salle ${esc(s.salle||'—')}</div></div></div>`);
 
   document.querySelector('.tab-panel[data-tab="courses"]').innerHTML = '<h2 class="sec">Mes cours (touche pour ouvrir)</h2>' +
-    fmtEmpty(courses, c => `<div class="list-item clickable" onclick="openCourseTeacher('${c.id}')"><div><div class="t">${c.code} — ${c.intitule}</div><div class="s">${c.promotions?c.promotions.nom:'Promotion non assignée'}</div></div></div>`);
+    fmtEmpty(courses, c => `<div class="list-item clickable" onclick="openCourseTeacher('${c.id}')"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div><div class="s">${esc(c.promotions?c.promotions.nom:'Promotion non assignée')}</div></div></div>`);
 
   document.getElementById('panel-schedule').innerHTML = '<h2 class="sec">Mon horaire</h2>' +
-    fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${s.jour} ${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">${s.promotions?s.promotions.nom:''} · Salle ${s.salle||'—'}</div></div></div>`);
+    fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${esc(s.jour)} ${esc(s.heure_debut)} — ${esc(s.courses?s.courses.intitule:'')}</div><div class="s">${esc(s.promotions?s.promotions.nom:'')} · Salle ${esc(s.salle||'—')}</div></div></div>`);
 }
 
 async function openCourseTeacher(cid){
@@ -1561,7 +1562,7 @@ async function openCourseTeacher(cid){
 
   let body = `<h2 class="sec">Présences</h2>
     <input class="mini-input" id="attDate" type="date" value="${today}">`;
-  body += fmtEmpty(studs, s => `<div class="list-item"><div class="t">${nameOf(s)}</div>
+  body += fmtEmpty(studs, s => `<div class="list-item"><div class="t">${esc(nameOf(s))}</div>
       <select id="att_${s.id}" style="padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);">
         <option value="present">Présent</option><option value="absent">Absent</option><option value="retard">Retard</option><option value="justifie">Justifié</option>
       </select></div>`);
@@ -1571,7 +1572,7 @@ async function openCourseTeacher(cid){
     <input class="mini-input" id="grIntitule" placeholder="Intitulé (ex: Interrogation 1)">
     <select class="mini-input" id="grType"><option value="interrogation">Interrogation</option><option value="tp">TP</option><option value="td">TD</option><option value="examen">Examen</option><option value="examen_final">Examen final</option></select>
     <input class="mini-input" id="grMax" type="number" value="20" placeholder="Note maximale">`;
-  body += fmtEmpty(studs, s => `<div class="list-item"><div class="t">${nameOf(s)}</div>
+  body += fmtEmpty(studs, s => `<div class="list-item"><div class="t">${esc(nameOf(s))}</div>
       <input id="gr_${s.id}" type="number" step="0.1" placeholder="Note" style="width:80px;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);"></div>`);
   if((studs||[]).length) body += `<button class="mini-btn" onclick="saveGradesTeacher('${cid}')">Enregistrer les notes</button>`;
 
@@ -1622,10 +1623,10 @@ async function loadScheduleAdmin(){
   window.__coursesCache = courses || [];
   window.__promosCache = promos || [];
 
-  const promoOptions = (promos||[]).map(p=>`<option value="${p.id}">${p.nom}</option>`).join('');
-  const teacherOptions = (teachers||[]).map(t=>`<option value="${t.id}">${(t.users&&t.users.nom)||''} ${(t.users&&t.users.prenom)||''}</option>`).join('');
+  const promoOptions = (promos||[]).map(p=>`<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+  const teacherOptions = (teachers||[]).map(t=>`<option value="${t.id}">${esc((t.users&&t.users.nom)||'')} ${esc((t.users&&t.users.prenom)||'')}</option>`).join('');
 
-  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => `<div class="list-item"><div><div class="t">${c.code} — ${c.intitule}</div></div></div>`);
+  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => `<div class="list-item"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div></div></div>`);
   h += `<input class="mini-input" id="cCode" placeholder="Code du cours (ex: MU101)">
     <input class="mini-input" id="cIntitule" placeholder="Intitulé du cours">
     <select class="mini-input" id="cPromo"><option value="">— Promotion —</option>${promoOptions}</select>
@@ -1633,8 +1634,8 @@ async function loadScheduleAdmin(){
     <input class="mini-input" id="cCredits" type="number" placeholder="Crédits (ex: 4)">
     <button class="mini-btn" onclick="addCourse()">Ajouter le cours</button>`;
 
-  h += `<h2 class="sec">Horaire</h2>` + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${s.jour} ${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">${s.promotions?s.promotions.nom:''} · Salle ${s.salle||'—'}</div></div></div>`);
-  const courseOptions = (courses||[]).map(c=>`<option value="${c.id}">${c.code} — ${c.intitule}</option>`).join('');
+  h += `<h2 class="sec">Horaire</h2>` + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${esc(s.jour)} ${esc(s.heure_debut)} — ${esc(s.courses?s.courses.intitule:'')}</div><div class="s">${esc(s.promotions?s.promotions.nom:'')} · Salle ${esc(s.salle||'—')}</div></div></div>`);
+  const courseOptions = (courses||[]).map(c=>`<option value="${c.id}">${esc(c.code)} — ${esc(c.intitule)}</option>`).join('');
   h += `<select class="mini-input" id="sCourse"><option value="">— Choisir un cours —</option>${courseOptions}</select>
     <select class="mini-input" id="sJour">${jours.map(j=>`<option value="${j}">${j}</option>`).join('')}</select>
     <input class="mini-input" id="sDebut" type="time">
@@ -1682,7 +1683,7 @@ async function loadScheduleStudent(profile){
     return;
   }
   const { data: scheds } = await sb.from('schedules').select('*, courses(intitule)').eq('promotion_id', stu.promotion_id).order('jour');
-  panel.innerHTML = '<h2 class="sec">Mon horaire</h2>' + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${s.jour} ${s.heure_debut} — ${s.courses?s.courses.intitule:''}</div><div class="s">Salle ${s.salle||'—'}</div></div></div>`);
+  panel.innerHTML = '<h2 class="sec">Mon horaire</h2>' + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${esc(s.jour)} ${esc(s.heure_debut)} — ${esc(s.courses?s.courses.intitule:'')}</div><div class="s">Salle ${esc(s.salle||'—')}</div></div></div>`);
 }
 
 const audienceLabels = { tous_etudiants:"Tous les étudiants", l1:"L1", l2:"L2", l3:"L3", enseignants:"Enseignants", administrateurs:"Administrateurs" };
@@ -1717,7 +1718,7 @@ async function loadAnnouncements(profile){
   }
   // admins voient tout
 
-  listEl.innerHTML = fmtEmpty(visible, a => `<div class="list-item"><div><div class="t">${a.titre}</div><div class="s">${a.contenu||''}</div></div><span class="badge b-ok">${audienceLabels[a.audience]||a.audience}</span></div>`);
+  listEl.innerHTML = fmtEmpty(visible, a => `<div class="list-item"><div><div class="t">${esc(a.titre)}</div><div class="s">${esc(a.contenu||'')}</div></div><span class="badge b-ok">${audienceLabels[a.audience]||a.audience}</span></div>`);
 }
 
 async function publishAnnouncement(){
