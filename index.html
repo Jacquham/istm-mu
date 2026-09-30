@@ -79,6 +79,13 @@ header.topbar .right{display:flex;align-items:center;gap:8px;}
 .detail-header{position:sticky;top:0;background:var(--blue);color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;display:flex;align-items:center;gap:10px;}
 .detail-header button{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;}
 .detail-body{padding:14px;max-width:640px;margin:0 auto 40px;}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--blue2);color:#fff;font-weight:700;overflow:hidden;flex:none;}
+.banner{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:18px 0 4px;}
+.banner img{display:block;width:100%;max-height:190px;object-fit:cover;}
+.banner .btag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);color:#fff;font-size:10.5px;padding:3px 8px;border-radius:20px;}
+.banner .bbody{padding:12px 14px 14px;} .banner .bt{font-weight:700;font-size:14.5px;margin-bottom:4px;}
+.banner .bx{font-size:13px;color:var(--muted);line-height:1.45;} .banner a{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--blue2);}
+.banner .bdots{display:flex;justify-content:center;gap:6px;padding:0 0 10px;} .banner .bdots span{width:7px;height:7px;border-radius:50%;background:var(--border);cursor:pointer;} .banner .bdots span.on{background:var(--blue2);}
 .mini-input{width:100%;padding:10px;margin-bottom:8px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13.5px;}
 .mini-btn{width:100%;padding:10px;border-radius:9px;background:var(--blue2);color:#fff;border:none;font-size:13px;font-weight:600;margin-bottom:14px;}
 .clickable{cursor:pointer;}
@@ -154,6 +161,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <div><div class="ttl" id="hdrTitle">ISTM-MU</div><div class="who" id="hdrWho">—</div></div>
     </div>
     <div class="right">
+      <span id="hdrAvatar" onclick="openMyProfile()" style="cursor:pointer;display:inline-flex;"></span>
       <button class="bell" onclick="toggleAlerts()">🔔<span class="dot" id="alertDot"></span></button>
       <button onclick="logout()">Changer</button>
     </div>
@@ -221,6 +229,8 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <div id="announcementsPublish"></div>
       <div id="announcementsList"><div class="note">Chargement…</div></div>
     </div>
+
+    <div id="bannerBar"></div>
 
     <div class="note" id="footNote"></div>
 
@@ -388,7 +398,7 @@ async function validateFromHome(id, status){
 
 async function loadAccountsAdmin(){
   const { data: pending } = await sb.from('users').select('id,nom,postnom,prenom,role,code_id,created_at').eq('compte_status','en_attente').order('created_at',{ascending:true});
-  const rows = await fetchAll(() => sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).order('id'));
+  const rows = await fetchAll(() => sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,photo_path,created_at').order('created_at', { ascending:false }).order('id'));
   const enr = await fetchAll(() => byYear(sb.from('student_enrollments').select('student_id,promotion_id,promotions(nom)').order('student_id')));
   const { data: promos } = await pq(sb.from('promotions').select('id,nom').order('niveau'));
   window.__accPromo = {};
@@ -446,8 +456,9 @@ function renderAccountsList(){
   document.getElementById('accCount').textContent = list.length + ' compte(s)' + (list.length > MAX ? ' — affine ta recherche (60 premiers affichés)' : '');
   el.innerHTML = fmtEmpty(list.slice(0, MAX), r => {
     const pr = window.__accPromo[r.id];
-    return `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)}${pr && pr.nom ? ' · ' + esc(pr.nom) : ''}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`;
+    return `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div style="display:flex;align-items:center;gap:10px;">${avatarHtml(r, 40)}<div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)}${pr && pr.nom ? ' · ' + esc(pr.nom) : ''}</div></div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`;
   });
+  fillAvatars(el);
 }
 
 function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -461,7 +472,7 @@ async function openUserDetail(id){
   document.getElementById('detailBody').innerHTML = 'Chargement…';
   document.getElementById('detailOverlay').classList.add('show');
 
-  let body = `<h2 class="sec">Profil</h2>
+  let body = `<div style="text-align:center;margin:6px 0 12px;">${avatarHtml(u, 84)}</div><h2 class="sec">Profil</h2>
     <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(u.code_id)}</div></div></div>
     <div class="list-item"><div><div class="t">Email</div><div class="s">${fld(u.email)}</div></div></div>
     <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(u.telephone)}</div></div></div>${resetPwdHtml(u)}`;
@@ -590,6 +601,8 @@ async function enter(profile){
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('hdrTitle').textContent = 'ISTM-MU';
+  refreshHeaderAvatar();
+  loadBanners(profile);
   document.getElementById('hdrWho').textContent = `${roleLabels[profile.role]||profile.role} · ${profile.prenom} ${profile.nom}`;
   const tabs = tabsByRole[profile.role] || tabsByRole['etudiant'];
   const nav = document.getElementById('tabsNav');
@@ -711,7 +724,8 @@ async function loadSystemAdmin(){
     const b = actionLabels[l.action] || ['b-warn', l.action];
     return `<div class="list-item"><div><div class="t">${esc(l.description || l.action)}</div><div class="s">${esc(l.user_id ? (names[l.user_id] || 'Utilisateur') : 'Système')} · ${new Date(l.created_at).toLocaleString('fr-FR')}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`;
   });
-  panel.innerHTML = h;
+  panel.innerHTML = h + bannersAdminHtml();
+  loadBannersAdminList();
 }
 
 async function savePerms(id){
@@ -2091,6 +2105,222 @@ async function downloadStudentDoc(kind, sid){
   doc.text("En foi de quoi, la présente attestation lui est délivrée pour servir et valoir ce que de droit.", 20, 65 + lines.length * 8 + 10, { maxWidth: pw - 40, lineHeightFactor: 1.6 });
   docFooterPdf(doc, 65 + lines.length * 8 + 30);
   doc.save(`${kind === 'inscription' ? 'Attestation_inscription' : 'Attestation_reussite'}_${ident}_${year}.pdf`);
+}
+
+// ================= PHOTOS DE PROFIL =================
+function initials(u){ return ((String(u.prenom || '')[0] || '') + (String(u.nom || '')[0] || '')).toUpperCase() || '?'; }
+
+function avatarHtml(u, size){
+  const sz = size || 36;
+  return `<span class="avatar" data-av="${u.photo_path ? esc(u.photo_path) : ''}" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*0.38)}px;">${esc(initials(u))}</span>`;
+}
+
+window.__avCache = window.__avCache || {};
+async function fillAvatars(root){
+  if(!root) return;
+  const els = [...root.querySelectorAll('[data-av]')].filter(e => e.getAttribute('data-av'));
+  if(!els.length) return;
+  const need = [...new Set(els.map(e => e.getAttribute('data-av')).filter(p => !window.__avCache[p]))];
+  if(need.length){
+    const { data } = await sb.storage.from('avatars').createSignedUrls(need, 3600);
+    (data || []).forEach(d => { if(d && d.signedUrl) window.__avCache[d.path] = d.signedUrl; });
+  }
+  els.forEach(e => {
+    const u = window.__avCache[e.getAttribute('data-av')];
+    if(u) e.innerHTML = `<img src="${esc(u)}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+  });
+}
+
+// réduit la photo avant l'envoi (économise l'espace et les données mobiles)
+function compressImage(file, maxSide, quality, square){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let sw = img.naturalWidth, sh = img.naturalHeight, sx = 0, sy = 0, dw, dh;
+      if(square){ const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = m; sh = m; dw = dh = maxSide; }
+      else { const k = Math.min(1, maxSide / Math.max(sw, sh)); dw = Math.round(sw * k); dh = Math.round(sh * k); }
+      const c = document.createElement('canvas'); c.width = dw; c.height = dh;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, dw, dh);
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? resolve(b) : reject(new Error('Compression impossible')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image illisible (utilise une photo JPG ou PNG)")); };
+    img.src = url;
+  });
+}
+
+function refreshHeaderAvatar(){
+  const h = document.getElementById('hdrAvatar');
+  if(h && currentProfile){ h.innerHTML = avatarHtml(currentProfile, 34); fillAvatars(h); }
+}
+
+function openMyProfile(){
+  const p = currentProfile;
+  if(!p) return;
+  document.getElementById('detailName').textContent = `${p.prenom} ${p.nom}`;
+  document.getElementById('detailRole').textContent = roleLabels[p.role] || p.role;
+  document.getElementById('detailBody').innerHTML = `<div style="text-align:center;margin:8px 0 14px;">${avatarHtml(p, 96)}</div>
+    <input type="file" id="myPhotoFile" accept="image/*" style="display:none" onchange="uploadMyPhoto(this)">
+    <button class="mini-btn" onclick="document.getElementById('myPhotoFile').click()">📷 Choisir / changer ma photo</button>
+    ${p.photo_path ? `<button style="background:var(--danger);color:#fff;border:none;border-radius:9px;padding:10px;width:100%;margin-bottom:8px;font-size:13px;" onclick="removeMyPhoto()">Supprimer ma photo</button>` : ''}
+    <div id="myPhotoMsg" class="s" style="margin-bottom:8px;"></div>
+    <h2 class="sec">Mes informations</h2>
+    <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(p.code_id)}</div></div></div>
+    <div class="list-item"><div><div class="t">Email</div><div class="s">${fld(p.email)}</div></div></div>
+    <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(p.telephone)}</div></div></div>`;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+
+async function uploadMyPhoto(input){
+  const file = input.files && input.files[0];
+  const msg = document.getElementById('myPhotoMsg');
+  if(!file) return;
+  msg.textContent = 'Envoi en cours…';
+  try {
+    const blob = await compressImage(file, 256, 0.85, true);
+    const path = `${currentProfile.id}/avatar_${Date.now()}.jpg`;
+    const { error: upErr } = await sb.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if(upErr) throw upErr;
+    const { error } = await sb.rpc('set_my_photo', { p_path: path });
+    if(error){ await sb.storage.from('avatars').remove([path]); throw error; }
+    const old = currentProfile.photo_path;
+    if(old) await sb.storage.from('avatars').remove([old]);
+    currentProfile.photo_path = path;
+    refreshHeaderAvatar();
+    openMyProfile();
+    document.getElementById('myPhotoMsg').textContent = 'Photo enregistrée ✅';
+  } catch(e) { msg.textContent = 'Erreur : ' + (e.message || e); }
+}
+
+async function removeMyPhoto(){
+  if(!confirm('Supprimer ta photo de profil ?')) return;
+  const old = currentProfile.photo_path;
+  const { error } = await sb.rpc('set_my_photo', { p_path: null });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(old) await sb.storage.from('avatars').remove([old]);
+  currentProfile.photo_path = null;
+  refreshHeaderAvatar();
+  openMyProfile();
+}
+
+// remplit automatiquement les photos dès qu'un contenu s'affiche dans la fenêtre de détail
+document.addEventListener('DOMContentLoaded', () => {
+  const d = document.getElementById('detailBody');
+  if(d) new MutationObserver(() => fillAvatars(d)).observe(d, { childList: true });
+});
+
+// ================= BANNIÈRES DE SENSIBILISATION =================
+function bannerImgUrl(path){ return path ? sb.storage.from('bannieres').getPublicUrl(path).data.publicUrl : ''; }
+
+async function loadBanners(profile){
+  const el = document.getElementById('bannerBar');
+  if(!el) return;
+  if(window.__bannerTimer){ clearInterval(window.__bannerTimer); window.__bannerTimer = null; }
+  const { data, error } = await sb.from('banners').select('*').eq('actif', true).order('ordre').order('created_at', { ascending:false });
+  if(error || !data){ el.innerHTML = ''; return; }
+  const isAdm = profile.role === 'admin_central' || profile.role === 'admin_academique';
+  const aud = profile.role === 'etudiant' ? 'etudiants' : 'enseignants';
+  const today = localToday();
+  window.__banners = data.filter(b => (!b.date_fin || b.date_fin >= today) && (isAdm || b.audience === 'tous' || b.audience === aud));
+  window.__bannerIdx = 0;
+  renderBanner();
+  if(window.__banners.length > 1) window.__bannerTimer = setInterval(() => { window.__bannerIdx = (window.__bannerIdx + 1) % window.__banners.length; renderBanner(); }, 7000);
+}
+
+function renderBanner(){
+  const el = document.getElementById('bannerBar');
+  const list = window.__banners || [];
+  if(!el) return;
+  if(!list.length){ el.innerHTML = ''; return; }
+  const b = list[window.__bannerIdx % list.length];
+  const img = bannerImgUrl(b.image_path);
+  const link = b.lien && /^https?:\/\//i.test(b.lien) ? b.lien : '';
+  el.innerHTML = `<div class="banner">
+      <div class="btag">📢 Sensibilisation</div>
+      ${img ? `<img src="${esc(img)}" alt="">` : ''}
+      <div class="bbody"><div class="bt">${esc(b.titre)}</div>
+      ${b.texte ? `<div class="bx">${esc(b.texte)}</div>` : ''}
+      ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">En savoir plus</a>` : ''}</div>
+      ${list.length > 1 ? `<div class="bdots">${list.map((x, i) => `<span class="${i === window.__bannerIdx % list.length ? 'on' : ''}" onclick="window.__bannerIdx=${i};renderBanner()"></span>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+function bannersAdminHtml(){
+  return `<h2 class="sec">Bannières de sensibilisation</h2>
+    <div class="note">Une image et un message court s'affichent en bas de l'application pour tous les utilisateurs concernés.</div>
+    <input class="mini-input" id="bnTitre" placeholder="Titre (ex : Lavez-vous les mains)">
+    <input class="mini-input" id="bnTexte" placeholder="Message de sensibilisation (court)">
+    <input type="file" class="mini-input" id="bnImg" accept="image/*">
+    <select class="mini-input" id="bnAud"><option value="tous">Pour tout le monde</option><option value="etudiants">Pour les étudiants</option><option value="enseignants">Pour les enseignants</option></select>
+    <input class="mini-input" id="bnLien" placeholder="Lien (facultatif, https://…)">
+    <label style="font-size:11.5px;color:var(--muted);">Afficher jusqu'au (facultatif)</label>
+    <input class="mini-input" id="bnFin" type="date">
+    <button class="mini-btn" onclick="publishBanner()">Publier la bannière</button>
+    <div id="bnList"><div class="note">Chargement…</div></div>`;
+}
+
+async function loadBannersAdminList(){
+  const el = document.getElementById('bnList');
+  if(!el) return;
+  const { data, error } = await sb.from('banners').select('*').order('created_at', { ascending:false });
+  if(error){ el.innerHTML = `<div class="note">Impossible de charger les bannières : ${esc(error.message)}</div>`; return; }
+  const audL = { tous:'Tout le monde', etudiants:'Étudiants', enseignants:'Enseignants' };
+  el.innerHTML = fmtEmpty(data, b => `<div class="list-item"><div><div class="t">${esc(b.titre)}</div>
+      <div class="s">${esc(b.texte || '')}</div>
+      <div class="s" style="font-size:10.5px;">${esc(audL[b.audience] || b.audience)}${b.date_fin ? ' · jusqu\'au ' + new Date(b.date_fin).toLocaleDateString('fr-FR') : ''}</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;background:${b.actif ? '#1e7a3c' : '#6b7785'};" onclick="toggleBanner('${b.id}', ${!b.actif})">${b.actif ? 'Actif' : 'Inactif'}</button>
+        <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteBanner('${b.id}')">Suppr.</button>
+      </div></div>`);
+}
+
+async function publishBanner(){
+  const titre = document.getElementById('bnTitre').value.trim();
+  const texte = document.getElementById('bnTexte').value.trim();
+  const audience = document.getElementById('bnAud').value;
+  const lien = document.getElementById('bnLien').value.trim();
+  const date_fin = document.getElementById('bnFin').value || null;
+  const file = document.getElementById('bnImg').files[0];
+  if(!titre){ alert('Merci de saisir un titre.'); return; }
+  if(lien && !/^https?:\/\//i.test(lien)){ alert('Le lien doit commencer par https://'); return; }
+  let image_path = null;
+  if(file){
+    try {
+      const blob = await compressImage(file, 1000, 0.8, false);
+      image_path = `${Date.now()}.jpg`;
+      const { error: upErr } = await sb.storage.from('bannieres').upload(image_path, blob, { contentType: 'image/jpeg', upsert: false });
+      if(upErr){ alert("Erreur d'envoi de l'image : " + upErr.message); return; }
+    } catch(e) { alert('Erreur : ' + (e.message || e)); return; }
+  }
+  const { error } = await sb.from('banners').insert({ titre, texte: texte || null, image_path, lien: lien || null, audience, date_fin, created_by: currentProfile.id });
+  if(error){
+    if(image_path) await sb.storage.from('bannieres').remove([image_path]);
+    alert('Erreur : ' + error.message); return;
+  }
+  ['bnTitre','bnTexte','bnLien','bnFin','bnImg'].forEach(i => { document.getElementById(i).value = ''; });
+  loadBannersAdminList();
+  loadBanners(currentProfile);
+}
+
+async function toggleBanner(id, actif){
+  const { data, error } = await sb.from('banners').update({ actif }).eq('id', id).select();
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(!data || !data.length){ alert('Modification refusée.'); return; }
+  loadBannersAdminList();
+  loadBanners(currentProfile);
+}
+
+async function deleteBanner(id){
+  if(!confirm('Supprimer cette bannière ?')) return;
+  const { data: b } = await sb.from('banners').select('image_path').eq('id', id).maybeSingle();
+  const { data, error } = await sb.from('banners').delete().eq('id', id).select();
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(!data || !data.length){ alert('Suppression refusée.'); return; }
+  if(b && b.image_path) await sb.storage.from('bannieres').remove([b.image_path]);
+  loadBannersAdminList();
+  loadBanners(currentProfile);
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
