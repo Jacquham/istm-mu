@@ -6,8 +6,8 @@
 <title>ISTM-MU</title>
 <style>
 :root{
-  --blue:#0b3d64; --blue2:#125a8c; --green:#1c8a5c; --bg:#f4f7f9; --card:#ffffff;
-  --text:#16232b; --muted:#5c6b74; --border:#e1e7ea; --danger:#c0392b; --warn:#c98a12;
+  --blue:#0b5d4b; --blue2:#0b8a69; --green:#1c8a5c; --bg:#eef7f3; --card:#ffffff;
+  --text:#12241d; --muted:#587068; --border:#d8e8e1; --danger:#c0392b; --warn:#c98a12;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -46,9 +46,12 @@ h2.sec{font-size:14px; color:var(--muted); margin:18px 0 8px; text-transform:upp
 .list-item .t{font-size:13.5px; font-weight:600;} .list-item .s{font-size:11.5px; color:var(--muted);}
 .badge{font-size:10.5px; padding:3px 8px; border-radius:20px; font-weight:600;}
 .b-ok{background:#e3f5ec; color:var(--green);} .b-warn{background:#fbeed7; color:var(--warn);} .b-bad{background:#fbe4e1; color:var(--danger);}
-:root[data-theme="dark"] .b-ok, :root:not([data-theme="light"]) .b-ok{background:#12321f;}
-:root[data-theme="dark"] .b-warn, :root:not([data-theme="light"]) .b-warn{background:#3a2a0c;}
-:root[data-theme="dark"] .b-bad, :root:not([data-theme="light"]) .b-bad{background:#3a1512;}
+:root[data-theme="dark"] .b-ok{background:#12321f; color:#3ddbae;} :root[data-theme="dark"] .b-warn{background:#3a2a0c; color:#f0b84a;} :root[data-theme="dark"] .b-bad{background:#3a1512; color:#ff8a7a;}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .b-ok{background:#12321f; color:#3ddbae;}
+  :root:not([data-theme="light"]) .b-warn{background:#3a2a0c; color:#f0b84a;}
+  :root:not([data-theme="light"]) .b-bad{background:#3a1512; color:#ff8a7a;}
+}
 nav.tabs{position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--border); display:flex; padding-bottom:env(safe-area-inset-bottom,0px);}
 nav.tabs button{flex:1; background:none; border:none; padding:10px 4px 8px; font-size:10.5px; color:var(--muted);}
 nav.tabs button .ic{display:block; font-size:18px; margin-bottom:2px;}
@@ -89,6 +92,46 @@ header.topbar .right{display:flex;align-items:center;gap:8px;}
 .mini-input{width:100%;padding:10px;margin-bottom:8px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13.5px;}
 .mini-btn{width:100%;padding:10px;border-radius:9px;background:var(--blue2);color:#fff;border:none;font-size:13px;font-weight:600;margin-bottom:14px;}
 .clickable{cursor:pointer;}
+
+/* ================= THEME MEDICAL (couleurs du logo : vert, jaune, rouge) ================= */
+:root{ --gold:#f5c400; --coral:#e05b4a; --teal:#12a37a; }
+body{background:radial-gradient(circle at 100% 0%, rgba(245,196,0,.10), transparent 42%), radial-gradient(circle at 0% 100%, rgba(15,157,120,.13), transparent 46%), var(--bg); background-attachment:fixed;}
+header.topbar{background:linear-gradient(135deg,#084c3d,#0b8a69); border-bottom:3px solid var(--gold); box-shadow:0 3px 12px rgba(8,76,61,.25);}
+header.topbar .logo-mini{width:34px;height:34px;background:#fff;border-radius:10px;padding:1px;box-shadow:0 1px 4px rgba(0,0,0,.25);}
+header.topbar .ttl{font-size:16px;letter-spacing:.02em;}
+#gate{background:linear-gradient(160deg,#063d31,#0b8a69 62%,#12a37a);}
+#gate p{color:#d7f3ea;}
+h2.sec{color:var(--blue2); display:flex; align-items:center; gap:8px;}
+h2.sec::before{content:''; width:4px; height:14px; border-radius:2px; background:var(--gold); flex:none;}
+.list-item{border-left:4px solid rgba(15,157,120,.45);}
+nav.tabs{border-top:2px solid rgba(15,157,120,.35);}
+nav.tabs button.active{color:var(--blue2); font-weight:700; background:linear-gradient(180deg, rgba(15,157,120,.14), transparent);}
+.note{border-color:rgba(15,157,120,.35);}
+.mini-btn{box-shadow:0 2px 6px rgba(11,138,105,.25);}
+
+/* tuiles de chiffres colorées */
+.stat{position:relative; overflow:hidden; border-left:5px solid var(--ac,#0b8a69); padding-right:46px; background:linear-gradient(135deg, color-mix(in srgb, var(--ac,#0b8a69) 13%, var(--card)), var(--card) 70%);}
+.grid .stat:nth-child(4n+1){--ac:#0b8a69;} .grid .stat:nth-child(4n+2){--ac:#e0a800;} .grid .stat:nth-child(4n+3){--ac:#e05b4a;} .grid .stat:nth-child(4n+4){--ac:#1a8fbf;}
+.stat .sic{position:absolute; right:9px; top:9px; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:17px; background:color-mix(in srgb, var(--ac,#0b8a69) 20%, transparent);}
+
+/* carte d'accueil illustrée */
+.hero{position:relative; overflow:hidden; border-radius:18px; padding:18px 16px 16px; margin:0 0 6px; color:#fff; background:linear-gradient(135deg,#084c3d,#0b8a69 60%,#12a37a); box-shadow:0 6px 18px rgba(8,76,61,.28);}
+.hero::after{content:''; position:absolute; right:-24px; top:-26px; width:130px; height:130px; border-radius:50%; background:rgba(245,196,0,.20);}
+.hero .hi{font-size:19px; font-weight:800; position:relative; z-index:1;}
+.hero .sub{font-size:12.5px; opacity:.92; margin-top:3px; position:relative; z-index:1;}
+.hero .motto{font-size:11.5px; font-style:italic; color:#ffe680; margin-top:8px; position:relative; z-index:1;}
+.hero .cross{position:absolute; right:16px; top:14px; z-index:1; width:44px; height:44px; filter:drop-shadow(0 2px 4px rgba(0,0,0,.25));}
+.hero .ecg{display:block; width:100%; height:38px; margin-top:8px; position:relative; z-index:1;}
+.hero .ecg path{stroke:#ffd83a; stroke-width:2.4; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:420; stroke-dashoffset:420; animation:ecgdraw 3.2s ease-in-out infinite;}
+@keyframes ecgdraw{0%{stroke-dashoffset:420;} 55%{stroke-dashoffset:0;} 100%{stroke-dashoffset:-420;}}
+@media (prefers-reduced-motion: reduce){ .hero .ecg path{animation:none; stroke-dashoffset:0;} }
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0b1613; --card:#12231e; --text:#ecf6f2; --muted:#9db8ae; --border:#23413a; --blue2:#12a37a; }
+  :root:not([data-theme="light"]) nav.tabs button.active{color:#3ddbae;}
+  :root:not([data-theme="light"]) h2.sec{color:#3ddbae;}
+}
+:root[data-theme="dark"]{ --bg:#0b1613; --card:#12231e; --text:#ecf6f2; --muted:#9db8ae; --border:#23413a; --blue2:#12a37a; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -101,7 +144,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="theme-color" content="#0b3d64">
+<meta name="theme-color" content="#0b5d4b">
 <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
@@ -2322,6 +2365,52 @@ async function deleteBanner(id){
   loadBannersAdminList();
   loadBanners(currentProfile);
 }
+
+// ================= HABILLAGE DU TABLEAU DE BORD (carte d'accueil + icônes) =================
+function heroHtml(p){
+  const yr = (window.__curYear && window.__curYear.libelle) ? ' · Année ' + esc(window.__curYear.libelle) : '';
+  return `<div class="hero">
+    <svg class="cross" viewBox="0 0 100 100" aria-hidden="true"><rect x="36" y="8" width="28" height="84" rx="7" fill="#e05b4a"/><rect x="8" y="36" width="84" height="28" rx="7" fill="#e05b4a"/><rect x="36" y="8" width="28" height="84" rx="7" fill="none" stroke="#fff" stroke-width="3" opacity=".85"/></svg>
+    <div class="hi">Bonjour, ${esc(p.prenom || '')} 👋</div>
+    <div class="sub">${esc(roleLabels[p.role] || p.role)}${yr}</div>
+    <div class="motto">Scientia splendet et conscientia</div>
+    <svg class="ecg" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 H70 L82 22 L92 6 L104 36 L114 22 H170 L182 22 L192 8 L204 34 L214 22 H300"/></svg>
+  </div>`;
+}
+
+function iconForLabel(t){
+  t = String(t || '').toLowerCase();
+  const map = [[/tudiant/,'🎓'],[/nseignant/,'🩺'],[/romotion/,'📚'],[/pr[ée]sence/,'📋'],[/compte/,'👤'],[/paiement/,'💳'],[/message/,'✉️'],[/caisse|solde/,'💰'],[/moyenne/,'📈'],[/cours/,'📖'],[/contribution/,'💵'],[/^id$|matricule/,'🪪'],[/stage/,'🏥']];
+  for(const [re, ic] of map) if(re.test(t)) return ic;
+  return '✚';
+}
+
+function decorateStats(root){
+  root.querySelectorAll('.stat').forEach(st => {
+    if(st.querySelector(':scope > .sic')) return;
+    const lab = st.querySelector('span');
+    const ic = document.createElement('div');
+    ic.className = 'sic';
+    ic.textContent = iconForLabel(lab ? lab.textContent : '');
+    st.appendChild(ic);
+  });
+}
+
+function ensureHero(panel){
+  if(!panel || !currentProfile || !panel.children.length) return;
+  if(panel.querySelector(':scope > .hero')) return;
+  panel.insertAdjacentHTML('afterbegin', heroHtml(currentProfile));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const main = document.querySelector('main');
+  if(!main) return;
+  let queued = false;
+  new MutationObserver(() => {
+    if(queued) return; queued = true;
+    requestAnimationFrame(() => { queued = false; decorateStats(main); ensureHero(document.getElementById('panel-home')); });
+  }).observe(main, { childList: true, subtree: true });
+});
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
 const prBadge = s => ({en_attente:['b-warn','En attente'], valide:['b-ok','Validé'], refuse:['b-bad','Refusé'], annule:['b-bad','Annulé']})[s] || ['b-warn', s];
