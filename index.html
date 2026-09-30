@@ -2211,20 +2211,32 @@ async function loadScheduleAdmin(){
   const [{data:courses},{data:promos},{data:teachers},{data:scheds}] = await Promise.all([
     sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id').order('code'),
     pq(sb.from('promotions').select('id,nom').order('niveau')),
-    sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom)'),
+    sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom,code_id,is_active,compte_status)'),
     sb.from('schedules').select('*, courses(intitule), promotions(nom)').order('jour')
   ]);
   window.__coursesCache = courses || [];
   window.__promosCache = promos || [];
 
   const promoOptions = (promos||[]).map(p=>`<option value="${p.id}">${esc(p.nom)}</option>`).join('');
-  const teacherOptions = (teachers||[]).map(t=>`<option value="${t.id}">${esc((t.users&&t.users.nom)||'')} ${esc((t.users&&t.users.prenom)||'')}</option>`).join('');
+  window.__teachersCache = (teachers||[]).map(t => ({
+    id: t.id,
+    code: (t.users && t.users.code_id) || t.matricule_enseignant || 'ID ?',
+    nom: (t.users && t.users.nom) || '',
+    prenom: (t.users && t.users.prenom) || '',
+    actif: !!t.users && t.users.compte_status === 'valide' && t.users.is_active !== false
+  }));
 
-  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => `<div class="list-item"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div></div></div>`);
+  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => {
+    const t = c.enseignant_responsable_id ? teacherInfo(c.enseignant_responsable_id) : null;
+    const who = c.enseignant_responsable_id ? (t ? esc(teacherLabel(t)) + ' ' + teacherBadge(t) : 'Enseignant introuvable') : 'Aucun enseignant assigné';
+    return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div><div class="s">${who}</div></div>
+      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openChangeTeacher('${c.id}')">Changer l'enseignant</button>
+      <div id="ctBox${c.id}" style="width:100%;"></div></div>`;
+  });
   h += `<input class="mini-input" id="cCode" placeholder="Code du cours (ex: MU101)">
     <input class="mini-input" id="cIntitule" placeholder="Intitulé du cours">
     <select class="mini-input" id="cPromo"><option value="">— Promotion —</option>${promoOptions}</select>
-    <select class="mini-input" id="cTeacher"><option value="">— Enseignant responsable (optionnel) —</option>${teacherOptions}</select>
+    ${teacherPicker('cTeacher', null)}
     <input class="mini-input" id="cCredits" type="number" placeholder="Crédits (ex: 4)">
     <button class="mini-btn" onclick="addCourse()">Ajouter le cours</button>`;
 
@@ -2238,6 +2250,57 @@ async function loadScheduleAdmin(){
     <button class="mini-btn" onclick="addSchedule()">Ajouter au planning</button>`;
 
   panel.innerHTML = h;
+}
+
+/* ===== Choix d'un enseignant par ID ou par nom ===== */
+function normTxt(x){ return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+function teacherInfo(id){ return (window.__teachersCache||[]).find(x => x.id === id) || null; }
+function teacherLabel(t){ return (t.code + ' · ' + t.nom + ' ' + t.prenom).trim(); }
+function teacherBadge(t){ return t.actif ? '<span class="badge b-ok">✅ Compte actif</span>' : '<span class="badge b-warn">⚠️ Compte non actif</span>'; }
+
+function teacherPicker(prefix, currentId){
+  const t = currentId ? teacherInfo(currentId) : null;
+  return `<input type="hidden" id="${prefix}" value="${t ? t.id : ''}">
+    <input class="mini-input" id="${prefix}Q" autocomplete="off" placeholder="Enseignant : tape l'ID (ENS26-0001) ou le nom" value="${t ? esc(teacherLabel(t)) : ''}" oninput="document.getElementById('${prefix}').value='';teacherSuggest('${prefix}')" onfocus="teacherSuggest('${prefix}')">
+    <div id="${prefix}S"></div>`;
+}
+
+function teacherSuggest(prefix){
+  const q = normTxt(document.getElementById(prefix + 'Q').value.trim());
+  const box = document.getElementById(prefix + 'S');
+  let list = window.__teachersCache || [];
+  if(q) list = list.filter(t => normTxt(t.code + ' ' + t.nom + ' ' + t.prenom + ' ' + t.prenom + ' ' + t.nom).includes(q));
+  list = list.slice(0, 8);
+  box.innerHTML = list.length
+    ? list.map(t => `<div class="list-item clickable" onclick="teacherPick('${prefix}','${t.id}')"><div><div class="t">${esc(t.code)} · ${esc(t.nom)} ${esc(t.prenom)}</div><div class="s">${teacherBadge(t)}</div></div></div>`).join('')
+    : '<div class="note">Aucun enseignant trouvé.</div>';
+}
+
+function teacherPick(prefix, id){
+  const t = teacherInfo(id);
+  if(!t) return;
+  document.getElementById(prefix).value = t.id;
+  document.getElementById(prefix + 'Q').value = teacherLabel(t);
+  document.getElementById(prefix + 'S').innerHTML = '';
+}
+
+function openChangeTeacher(cid){
+  const box = document.getElementById('ctBox' + cid);
+  if(!box) return;
+  if(box.innerHTML){ box.innerHTML = ''; return; }
+  const c = (window.__coursesCache || []).find(x => x.id === cid);
+  box.innerHTML = teacherPicker('ct' + cid, c ? c.enseignant_responsable_id : null) +
+    `<button class="mini-btn" onclick="saveCourseTeacher('${cid}')">Enregistrer</button>`;
+}
+
+async function saveCourseTeacher(cid){
+  const tid = document.getElementById('ct' + cid).value || null;
+  if(!tid && !confirm("Retirer l'enseignant de ce cours ?")) return;
+  const { error } = await sb.from('courses').update({ enseignant_responsable_id: tid }).eq('id', cid);
+  if(error){ alert('Erreur : ' + error.message); return; }
+  const { error: e2 } = await sb.from('schedules').update({ teacher_id: tid }).eq('course_id', cid);
+  if(e2) alert("Enseignant changé, mais les horaires n'ont pas pu être mis à jour : " + e2.message);
+  loadScheduleAdmin();
 }
 
 async function addCourse(){
