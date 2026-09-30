@@ -464,7 +464,7 @@ async function openUserDetail(id){
   let body = `<h2 class="sec">Profil</h2>
     <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(u.code_id)}</div></div></div>
     <div class="list-item"><div><div class="t">Email</div><div class="s">${fld(u.email)}</div></div></div>
-    <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(u.telephone)}</div></div></div>`;
+    <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(u.telephone)}</div></div></div>${resetPwdHtml(u)}`;
 
   if(u.role === 'etudiant'){
     const { data: promos } = await pq(sb.from('promotions').select('id,nom').order('niveau'));
@@ -1407,9 +1407,17 @@ async function renderMessagesAdmin(){
     <button class="mini-btn" onclick="sendMessageAdmin()">Envoyer</button>
     <h2 class="sec">Reçus</h2>`;
   h += fmtEmpty(recu, m => `<div class="list-item" style="${m.is_read?'':'border-color:var(--blue2);border-width:2px;'}"><div><div class="t">${esc(names[m.sender_id]||'Utilisateur')}${m.recipient_id===null?" (à l'administration)":''}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div>
-      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="replyTo('${m.sender_id}')">Répondre</button></div>`);
+      <div style="display:flex;flex-direction:column;gap:6px;"><button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="replyTo('${m.sender_id}')">Répondre</button>
+      <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteMessage('${m.id}')">Suppr.</button></div></div>`);
   h += `<h2 class="sec">Envoyés</h2>`;
-  h += fmtEmpty(envoyes, m => `<div class="list-item"><div><div class="t">À : ${esc(names[m.recipient_id]||'—')}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div></div>`);
+  h += fmtEmpty(envoyes, m => `<div class="list-item"><div><div class="t">À : ${esc(names[m.recipient_id]||'—')}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div>
+    <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteMessage('${m.id}')">Suppr.</button></div>`);
+  if(currentProfile.role === 'admin_central'){
+    h += `<h2 class="sec">Nettoyage des messages</h2>
+      <div class="note">Supprime d'un coup les anciens échanges pour libérer de l'espace (les messages plus récents sont conservés).</div>
+      <select class="mini-input" id="purgeDays"><option value="90">Plus de 3 mois</option><option value="180" selected>Plus de 6 mois</option><option value="365">Plus de 12 mois</option></select>
+      <button style="background:var(--danger);color:#fff;border:none;border-radius:10px;padding:10px;width:100%;font-size:13px;" onclick="purgeOldMessages()">Supprimer les anciens messages</button>`;
+  }
   el.innerHTML = h;
 
   if(unread && recu && recu.length){
@@ -1431,6 +1439,66 @@ async function sendMessageAdmin(){
   if(!contenu){ return; }
   const { error } = await sb.from('messages').insert({ sender_id: currentProfile.id, recipient_id, contenu });
   if(error){ alert("Erreur : " + error.message); return; }
+  renderMessagesAdmin();
+}
+
+// ================= RÉCUPÉRATION DE MOT DE PASSE (par l'administrateur central) =================
+function resetPwdHtml(u){
+  if(currentProfile.role !== 'admin_central' || u.id === currentProfile.id) return '';
+  return `<div id="pwResetBox"><button class="mini-btn" style="background:#a35a00;" onclick="resetMemberPassword('${u.id}')">🔑 Réinitialiser le mot de passe</button></div>`;
+}
+
+function genTempPassword(){
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const a = new Uint32Array(10); crypto.getRandomValues(a);
+  return Array.from(a, x => A[x % A.length]).join('');
+}
+
+async function resetMemberPassword(id){
+  const u = (window.__accountsCache || []).find(x => x.id === id);
+  if(!u) return;
+  if(!confirm(`Réinitialiser le mot de passe de ${u.nom} ${u.prenom} ?\n\nUn mot de passe temporaire sera créé. Le membre devra en choisir un nouveau à sa prochaine connexion, et ses connexions actuelles seront fermées.`)) return;
+  const pw = genTempPassword();
+  const { error } = await sb.rpc('admin_reset_password', { p_user: id, p_password: pw });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  const tel = String(u.telephone || '').replace(/\D/g, '');
+  const wa = tel ? (tel.startsWith('0') ? '243' + tel.slice(1) : tel) : '';
+  const msg = `Bonjour ${u.prenom}, ton mot de passe ISTM-MU a été réinitialisé.\nE-mail : ${u.email || ''}\nMot de passe temporaire : ${pw}\nConnecte-toi sur https://jacquham.github.io/istm-mu/ puis choisis un nouveau mot de passe.`;
+  window.__lastResetMsg = msg;
+  const box = document.getElementById('pwResetBox');
+  if(box) box.innerHTML = `<div class="note" style="border-style:solid;">
+      <div>Mot de passe temporaire de <b>${esc(u.nom)} ${esc(u.prenom)}</b> :</div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:1px;margin:8px 0;user-select:all;">${esc(pw)}</div>
+      <div class="s">Communique-le au membre (il ne sera plus affiché). Il devra le changer à sa prochaine connexion.</div>
+      <button class="mini-btn" style="margin-top:8px;" onclick="copyResetMsg()">Copier le message</button>
+      ${wa ? `<button class="mini-btn" style="background:#1e7a3c;" onclick="window.open('https://wa.me/${wa}?text=' + encodeURIComponent(window.__lastResetMsg), '_blank')">Envoyer par WhatsApp</button>` : ''}
+    </div>`;
+}
+
+async function copyResetMsg(){
+  try { await navigator.clipboard.writeText(window.__lastResetMsg || ''); alert('Message copié.'); }
+  catch(e) { alert('Copie impossible : note le mot de passe affiché.'); }
+}
+
+// ================= SUPPRESSION DE MESSAGES =================
+async function deleteMessage(id){
+  if(!confirm('Supprimer ce message ?')) return;
+  const { data, error } = await sb.from('messages').delete().eq('id', id).select();
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(!data || !data.length){ alert('Suppression refusée (script SQL mdp_et_messages.sql pas encore exécuté ?).'); return; }
+  renderMessagesAdmin();
+}
+
+async function purgeOldMessages(){
+  const days = parseInt(document.getElementById('purgeDays').value);
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+  const { count, error: e1 } = await sb.from('messages').select('*', { count:'exact', head:true }).lt('created_at', cutoff);
+  if(e1){ alert('Erreur : ' + e1.message); return; }
+  if(!count){ alert('Aucun message de plus de ' + days + ' jours.'); return; }
+  if(!confirm(count + ' message(s) de plus de ' + days + ' jours seront supprimés définitivement. Continuer ?')) return;
+  const { data, error } = await sb.rpc('purge_old_messages', { p_days: days });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  alert(data.messages + ' message(s) supprimé(s).');
   renderMessagesAdmin();
 }
 
