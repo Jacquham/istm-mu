@@ -1544,6 +1544,7 @@ async function renderPlanning(){
   const isAdmin = role === 'admin_central' || role === 'admin_academique';
   const isCurYear = window.__curYear && vy() === window.__curYear.id;
   const promos = window.__planPromos || [];
+  if(isAdmin) await ensureTeachersCache();
   const { data: rows, error } = await sb.rpc('planning_cours', { p_promotion: window.__planPromo, p_year: vy() });
   let h = '<h2 class="sec">Planning des cours</h2>';
   if(promos.length > 1){
@@ -1578,7 +1579,7 @@ async function renderPlanning(){
   const sems = Object.keys(bySem).sort();
   if(!sems.length) h += '<div class="note">Aucun cours dans cette promotion.</div>';
   sems.forEach(k => {
-    h += `<div class="s" style="margin:10px 0 4px;font-weight:600;">Semestre ${esc(k)} — ${bySem[k].length} cours · ${sumCr(bySem[k])} crédits</div>`;
+    h += `<div class="s" style="margin:10px 0 4px;font-weight:600;">${k === '—' ? 'Semestre non défini' : 'Semestre ' + esc(k)} — ${bySem[k].length} cours · ${sumCr(bySem[k])} crédits</div>`;
     h += bySem[k].map(c => {
       const lb = planLabels[c.statut] || planLabels.en_cours;
       let act = '';
@@ -1589,9 +1590,11 @@ async function renderPlanning(){
       if(isCurYear && isAdmin && c.statut === 'valide'){
         act = `<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="reopenCourse('${c.course_id}')">Rouvrir</button>`;
       }
-      return `<div class="list-item"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
+      const editBtn = isAdmin ? `<button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;background:#33465a;" onclick="openPlanEdit('${c.course_id}')">Modifier</button>` : '';
+      return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
         <div class="s">${esc(c.enseignant_nom || 'Enseignant non assigné')} · ${esc(c.credits ?? '—')} crédits · ${esc(c.volume_horaire ?? '—')} h</div>
-        <span class="badge ${lb[1]}">${lb[0]}</span></div><div>${act}</div></div>`;
+        <span class="badge ${lb[1]}">${lb[0]}</span></div><div style="display:flex;flex-direction:column;gap:6px;">${act}${editBtn}</div>
+        <div id="pcBox${c.course_id}" style="width:100%;"></div></div>`;
     }).join('');
   });
   el.innerHTML = h;
@@ -1604,6 +1607,46 @@ async function declareCourseDone(cid){
   if(isAdmin) row.statut = 'valide';
   const { error } = await sb.from('course_completions').insert(row);
   if(error){ alert(error.code === '23505' ? 'Une demande est déjà en attente pour ce cours.' : 'Erreur : ' + error.message); return; }
+  renderPlanning();
+}
+
+async function ensureTeachersCache(){
+  if(window.__teachersCache) return;
+  const { data } = await sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom,code_id,is_active,compte_status)');
+  window.__teachersCache = (data || []).map(t => ({
+    id: t.id,
+    code: (t.users && t.users.code_id) || t.matricule_enseignant || 'ID ?',
+    nom: (t.users && t.users.nom) || '',
+    prenom: (t.users && t.users.prenom) || '',
+    actif: !!t.users && t.users.compte_status === 'valide' && t.users.is_active !== false
+  }));
+}
+
+function openPlanEdit(cid){
+  const box = document.getElementById('pcBox' + cid);
+  if(!box) return;
+  if(box.innerHTML){ box.innerHTML = ''; return; }
+  const c = ((window.__planData || {}).list || []).find(x => x.course_id === cid) || {};
+  const sem = c.semestre == null ? '' : String(c.semestre);
+  box.innerHTML = `<select class="mini-input" id="pcSem${cid}"><option value="">— Semestre non défini —</option>
+      <option value="1" ${sem === '1' ? 'selected' : ''}>Semestre 1</option><option value="2" ${sem === '2' ? 'selected' : ''}>Semestre 2</option></select>
+    ${teacherPicker('pcT' + cid, c.enseignant_id)}
+    <button class="mini-btn" onclick="savePlanEdit('${cid}')">Enregistrer</button>`;
+}
+
+async function savePlanEdit(cid){
+  const c = ((window.__planData || {}).list || []).find(x => x.course_id === cid) || {};
+  const sm = document.getElementById('pcSem' + cid).value;
+  const tid = document.getElementById('pcT' + cid).value || null;
+  const teacherChanged = (c.enseignant_id || null) !== tid;
+  if(teacherChanged && !tid && !confirm("Retirer l'enseignant de ce cours ?")) return;
+  const { data, error } = await sb.from('courses').update({ semestre: sm === '' ? null : parseInt(sm), enseignant_responsable_id: tid }).eq('id', cid).select();
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(!data || !data.length){ alert('Modification refusée : droits insuffisants (script SQL cours_gestion.sql pas encore exécuté ?).'); return; }
+  if(teacherChanged){
+    const { error: e2 } = await sb.from('schedules').update({ teacher_id: tid }).eq('course_id', cid);
+    if(e2) alert("Enseignant changé, mais les horaires n'ont pas pu être mis à jour : " + e2.message);
+  }
   renderPlanning();
 }
 
@@ -1620,9 +1663,9 @@ function exportPlanningPdf(){
   if(!d || !d.list || !d.list.length){ alert('Aucun cours à exporter.'); return; }
   if(!(window.jspdf && window.jspdf.jsPDF)){ alert("Le module PDF n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
   const stLabel = { en_cours: 'En cours', en_attente: 'Validation demandée', valide: 'Terminé' };
-  const sorted = d.list.slice().sort((a, b) => String(a.semestre || '').localeCompare(String(b.semestre || '')) || String(a.code).localeCompare(String(b.code)));
+  const sorted = d.list.slice().sort((a, b) => String(a.semestre || '9').localeCompare(String(b.semestre || '9')) || String(a.code).localeCompare(String(b.code)));
   const sem = {}; sorted.forEach(c => { const k = c.semestre || '-'; sem[k] = sem[k] || { n: 0, cr: 0 }; sem[k].n++; sem[k].cr += Number(c.credits) || 0; });
-  const summary = Object.keys(sem).sort().map(k => `Semestre ${k} : ${sem[k].n} cours, ${sem[k].cr} crédits`);
+  const summary = Object.keys(sem).sort().map(k => `${k === '-' ? 'Semestre non défini' : 'Semestre ' + k} : ${sem[k].n} cours, ${sem[k].cr} crédits`);
   summary.push(`Total : ${sorted.length} cours, ${sorted.reduce((t, c) => t + (Number(c.credits) || 0), 0)} crédits`);
   exportPdf({
     title: 'Planification annuelle des cours - ' + d.promoNom,
@@ -1630,7 +1673,7 @@ function exportPlanningPdf(){
     summary,
     columns: ['Semestre', 'Code', 'Intitulé du cours', 'Crédits', 'Enseignant', 'Volume horaire (h)', 'Statut'],
     numCols: [3, 5],
-    rows: sorted.map(c => [c.semestre || '-', c.code, c.intitule, c.credits == null ? '' : c.credits, c.enseignant_nom || 'Non assigné', c.volume_horaire == null ? '' : c.volume_horaire, stLabel[c.statut] || c.statut])
+    rows: sorted.map(c => [c.semestre || 'Non défini', c.code, c.intitule, c.credits == null ? '' : c.credits, c.enseignant_nom || 'Non assigné', c.volume_horaire == null ? '' : c.volume_horaire, stLabel[c.statut] || c.statut])
   }, 'Planification_' + String(d.promoNom).replace(/[^\w]+/g, '_') + '_' + d.year);
 }
 
