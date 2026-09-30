@@ -1529,7 +1529,7 @@ async function loadPlanning(profile){
       const { data: st } = await sb.from('students').select('promotion_id').eq('id', profile.id).maybeSingle();
       pid = st ? st.promotion_id : null;
     }
-    if(pid) promos = [{ id: pid, nom: 'Ma promotion' }];
+    if(pid){ const { data: pn } = await sb.from('promotions').select('nom').eq('id', pid).maybeSingle(); promos = [{ id: pid, nom: (pn && pn.nom) || 'Ma promotion' }]; }
   } else { el.innerHTML = ''; return; }
   window.__planPromos = promos;
   if(!promos.length){ el.innerHTML = '<h2 class="sec">Planning des cours</h2><div class="note">Aucune promotion disponible pour cette année.</div>'; return; }
@@ -1549,8 +1549,16 @@ async function renderPlanning(){
   if(promos.length > 1){
     h += `<select class="mini-input" onchange="window.__planPromo=this.value;renderPlanning()">${promos.map(p => `<option value="${p.id}" ${p.id === window.__planPromo ? 'selected' : ''}>${esc(p.nom)}</option>`).join('')}</select>`;
   }
+  if(promos.length === 1) h += `<div class="s" style="margin-bottom:4px;">${esc(promos[0].nom)}</div>`;
   if(error){ el.innerHTML = h + `<div class="note">Impossible de charger le planning : ${esc(error.message)}</div>`; return; }
   const list = rows || [];
+  const curPromo = promos.find(p => p.id === window.__planPromo) || promos[0] || { nom: '' };
+  window.__planData = { list, promoNom: curPromo.nom, year: yearLabel(vy()) };
+  const sumCr = arr => arr.reduce((t, c) => t + (Number(c.credits) || 0), 0);
+  if(list.length){
+    h += `<div class="note" style="margin-top:8px;"><b>${list.length} cours · ${sumCr(list)} crédits</b> · ${list.filter(c => c.statut === 'valide').length} terminé(s)</div>
+      <button class="mini-btn" onclick="exportPlanningPdf()">Télécharger la planification (PDF)</button>`;
+  }
 
   if(isAdmin){
     const { data: pend } = await byYear(sb.from('course_completions').select('id,demande_role,created_at,courses(code,intitule),users:demande_par(nom,prenom)').eq('statut','en_attente').order('created_at'));
@@ -1570,13 +1578,16 @@ async function renderPlanning(){
   const sems = Object.keys(bySem).sort();
   if(!sems.length) h += '<div class="note">Aucun cours dans cette promotion.</div>';
   sems.forEach(k => {
-    h += `<div class="s" style="margin:10px 0 4px;font-weight:600;">Semestre ${esc(k)}</div>`;
+    h += `<div class="s" style="margin:10px 0 4px;font-weight:600;">Semestre ${esc(k)} — ${bySem[k].length} cours · ${sumCr(bySem[k])} crédits</div>`;
     h += bySem[k].map(c => {
       const lb = planLabels[c.statut] || planLabels.en_cours;
       let act = '';
       if(isCurYear && c.statut === 'en_cours'){
         const mine = role === 'enseignant' ? c.enseignant_id === profile.id : true;
         if(mine) act = `<button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="declareCourseDone('${c.course_id}')">${isAdmin ? 'Marquer terminé' : (role === 'enseignant' ? 'Déclarer terminé' : 'Signaler terminé')}</button>`;
+      }
+      if(isCurYear && isAdmin && c.statut === 'valide'){
+        act = `<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="reopenCourse('${c.course_id}')">Rouvrir</button>`;
       }
       return `<div class="list-item"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
         <div class="s">${esc(c.enseignant_nom || 'Enseignant non assigné')} · ${esc(c.credits ?? '—')} crédits · ${esc(c.volume_horaire ?? '—')} h</div>
@@ -1594,6 +1605,33 @@ async function declareCourseDone(cid){
   const { error } = await sb.from('course_completions').insert(row);
   if(error){ alert(error.code === '23505' ? 'Une demande est déjà en attente pour ce cours.' : 'Erreur : ' + error.message); return; }
   renderPlanning();
+}
+
+async function reopenCourse(cid){
+  if(!confirm('Rouvrir ce cours (annuler sa validation comme terminé) ?')) return;
+  const { data, error } = await sb.from('course_completions').delete().eq('course_id', cid).eq('academic_year_id', vy()).eq('statut', 'valide').select();
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(!data || !data.length){ alert('Rien à rouvrir (droits insuffisants ou déjà rouvert).'); return; }
+  renderPlanning();
+}
+
+function exportPlanningPdf(){
+  const d = window.__planData;
+  if(!d || !d.list || !d.list.length){ alert('Aucun cours à exporter.'); return; }
+  if(!(window.jspdf && window.jspdf.jsPDF)){ alert("Le module PDF n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
+  const stLabel = { en_cours: 'En cours', en_attente: 'Validation demandée', valide: 'Terminé' };
+  const sorted = d.list.slice().sort((a, b) => String(a.semestre || '').localeCompare(String(b.semestre || '')) || String(a.code).localeCompare(String(b.code)));
+  const sem = {}; sorted.forEach(c => { const k = c.semestre || '-'; sem[k] = sem[k] || { n: 0, cr: 0 }; sem[k].n++; sem[k].cr += Number(c.credits) || 0; });
+  const summary = Object.keys(sem).sort().map(k => `Semestre ${k} : ${sem[k].n} cours, ${sem[k].cr} crédits`);
+  summary.push(`Total : ${sorted.length} cours, ${sorted.reduce((t, c) => t + (Number(c.credits) || 0), 0)} crédits`);
+  exportPdf({
+    title: 'Planification annuelle des cours - ' + d.promoNom,
+    filters: 'Année académique : ' + d.year,
+    summary,
+    columns: ['Semestre', 'Code', 'Intitulé du cours', 'Crédits', 'Enseignant', 'Volume horaire (h)', 'Statut'],
+    numCols: [3, 5],
+    rows: sorted.map(c => [c.semestre || '-', c.code, c.intitule, c.credits == null ? '' : c.credits, c.enseignant_nom || 'Non assigné', c.volume_horaire == null ? '' : c.volume_horaire, stLabel[c.statut] || c.statut])
+  }, 'Planification_' + String(d.promoNom).replace(/[^\w]+/g, '_') + '_' + d.year);
 }
 
 async function decideCompletion(id, statut){
@@ -2209,7 +2247,7 @@ const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 async function loadScheduleAdmin(){
   const panel = document.getElementById('panel-schedule');
   const [{data:courses},{data:promos},{data:teachers},{data:scheds}] = await Promise.all([
-    sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id').order('code'),
+    sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id,credits,semestre,volume_horaire').order('code'),
     pq(sb.from('promotions').select('id,nom').order('niveau')),
     sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom,code_id,is_active,compte_status)'),
     sb.from('schedules').select('*, courses(intitule), promotions(nom)').order('jour')
@@ -2229,8 +2267,13 @@ async function loadScheduleAdmin(){
   let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => {
     const t = c.enseignant_responsable_id ? teacherInfo(c.enseignant_responsable_id) : null;
     const who = c.enseignant_responsable_id ? (t ? esc(teacherLabel(t)) + ' ' + teacherBadge(t) : 'Enseignant introuvable') : 'Aucun enseignant assigné';
-    return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div><div class="s">${who}</div></div>
-      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openChangeTeacher('${c.id}')">Changer l'enseignant</button>
+    return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div><div class="s">${who}</div>
+      <div class="s" style="font-size:10.5px;">${c.credits != null ? esc(c.credits) + ' crédit(s)' : 'crédits ?'} · ${c.semestre != null && c.semestre !== '' ? 'Semestre ' + esc(c.semestre) : 'semestre ?'} · ${c.volume_horaire != null ? esc(c.volume_horaire) + ' h' : 'heures ?'}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openEditCourse('${c.id}')">Modifier</button>
+        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openChangeTeacher('${c.id}')">Changer l'enseignant</button>
+      </div>
+      <div id="ceBox${c.id}" style="width:100%;"></div>
       <div id="ctBox${c.id}" style="width:100%;"></div></div>`;
   });
   h += `<input class="mini-input" id="cCode" placeholder="Code du cours (ex: MU101)">
@@ -2238,6 +2281,8 @@ async function loadScheduleAdmin(){
     <select class="mini-input" id="cPromo"><option value="">— Promotion —</option>${promoOptions}</select>
     ${teacherPicker('cTeacher', null)}
     <input class="mini-input" id="cCredits" type="number" placeholder="Crédits (ex: 4)">
+    <select class="mini-input" id="cSemestre"><option value="">— Semestre —</option><option value="1">Semestre 1</option><option value="2">Semestre 2</option></select>
+    <input class="mini-input" id="cVolume" type="number" placeholder="Volume horaire en heures (ex: 30)">
     <button class="mini-btn" onclick="addCourse()">Ajouter le cours</button>`;
 
   h += `<h2 class="sec">Horaire</h2>` + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${esc(s.jour)} ${esc(s.heure_debut)} — ${esc(s.courses?s.courses.intitule:'')}</div><div class="s">${esc(s.promotions?s.promotions.nom:'')} · Salle ${esc(s.salle||'—')}</div></div></div>`);
@@ -2284,6 +2329,49 @@ function teacherPick(prefix, id){
   document.getElementById(prefix + 'S').innerHTML = '';
 }
 
+function openEditCourse(cid){
+  const box = document.getElementById('ceBox' + cid);
+  if(!box) return;
+  if(box.innerHTML){ box.innerHTML = ''; return; }
+  const c = (window.__coursesCache || []).find(x => x.id === cid) || {};
+  const sem = c.semestre == null ? '' : String(c.semestre);
+  box.innerHTML = `<input class="mini-input" id="ceIntitule${cid}" placeholder="Intitulé" value="${esc(c.intitule || '')}">
+    <input class="mini-input" id="ceCredits${cid}" type="number" placeholder="Crédits" value="${c.credits == null ? '' : esc(c.credits)}">
+    <select class="mini-input" id="ceSem${cid}"><option value="">— Semestre —</option>
+      <option value="1" ${sem === '1' ? 'selected' : ''}>Semestre 1</option><option value="2" ${sem === '2' ? 'selected' : ''}>Semestre 2</option></select>
+    <input class="mini-input" id="ceVol${cid}" type="number" placeholder="Volume horaire (h)" value="${c.volume_horaire == null ? '' : esc(c.volume_horaire)}">
+    <button class="mini-btn" onclick="saveEditCourse('${cid}')">Enregistrer les modifications</button>
+    <button style="background:var(--danger);color:#fff;border:none;border-radius:10px;padding:10px;width:100%;margin-top:6px;font-size:12.5px;" onclick="deleteCourse('${cid}')">Supprimer ce cours</button>`;
+}
+
+async function saveEditCourse(cid){
+  const intitule = document.getElementById('ceIntitule' + cid).value.trim();
+  if(!intitule){ alert("L'intitulé est requis."); return; }
+  const upd = { intitule };
+  const cr = document.getElementById('ceCredits' + cid).value;
+  const sm = document.getElementById('ceSem' + cid).value;
+  const vo = document.getElementById('ceVol' + cid).value;
+  upd.credits = cr === '' ? null : parseInt(cr);
+  if(sm !== '') upd.semestre = parseInt(sm);
+  upd.volume_horaire = vo === '' ? null : parseInt(vo);
+  const { data, error } = await sb.from('courses').update(upd).eq('id', cid).select();
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(!data || !data.length){ alert('Modification refusée : droits insuffisants (script SQL cours_gestion.sql pas encore exécuté ?).'); return; }
+  loadScheduleAdmin();
+}
+
+async function deleteCourse(cid){
+  const cnt = async t => { const r = await sb.from(t).select('*', { count:'exact', head:true }).eq('course_id', cid); return r.error ? 0 : (r.count || 0); };
+  const [ng, na, ns] = await Promise.all([cnt('grades'), cnt('attendance'), cnt('schedules')]);
+  if(ng || na){ alert('Ce cours a déjà ' + ng + ' note(s) et ' + na + ' présence(s) : il ne peut pas être supprimé.'); return; }
+  if(ns){ alert('Ce cours a encore ' + ns + ' ligne(s) dans l\'horaire : retire-les avant de le supprimer.'); return; }
+  if(!confirm('Supprimer définitivement ce cours ?')) return;
+  const { data, error } = await sb.from('courses').delete().eq('id', cid).select();
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(!data || !data.length){ alert('Suppression refusée : droits insuffisants (script SQL cours_gestion.sql pas encore exécuté ?).'); return; }
+  loadScheduleAdmin();
+}
+
 function openChangeTeacher(cid){
   const box = document.getElementById('ctBox' + cid);
   if(!box) return;
@@ -2309,8 +2397,10 @@ async function addCourse(){
   const promotion_id = document.getElementById('cPromo').value || null;
   const enseignant_responsable_id = document.getElementById('cTeacher').value || null;
   const credits = parseInt(document.getElementById('cCredits').value) || null;
+  const semestre = parseInt(document.getElementById('cSemestre').value) || null;
+  const volume_horaire = parseInt(document.getElementById('cVolume').value) || null;
   if(!code || !intitule){ alert('Code et intitulé requis.'); return; }
-  const { error } = await sb.from('courses').insert({ code, intitule, promotion_id, enseignant_responsable_id, credits });
+  const { error } = await sb.from('courses').insert({ code, intitule, promotion_id, enseignant_responsable_id, credits, semestre, volume_horaire });
   if(error){ alert("Erreur : " + error.message); return; }
   loadScheduleAdmin();
 }
