@@ -1725,7 +1725,7 @@ async function renderPlanning(){
       }
       const editBtn = isAdmin ? `<button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;background:#33465a;" onclick="openPlanEdit('${c.course_id}')">Modifier</button>` : '';
       return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
-        <div class="s">${esc(c.enseignant_nom || 'Enseignant non assigné')} · ${esc(c.credits ?? '—')} crédits · ${esc(c.volume_horaire ?? '—')} h</div>
+        <div class="s">${esc(c.enseignant_nom || 'Enseignant non assigné')}${(isAdmin && !c.enseignant_id && c.enseignant_nom) ? ' <i>(compte à lier)</i>' : ''} · ${esc(c.credits ?? '—')} crédits · ${esc(c.volume_horaire ?? '—')} h</div>
         <span class="badge ${lb[1]}">${lb[0]}</span></div><div style="display:flex;flex-direction:column;gap:6px;">${act}${editBtn}</div>
         <div id="pcBox${c.course_id}" style="width:100%;"></div></div>`;
     }).join('');
@@ -2686,7 +2686,7 @@ const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 async function loadScheduleAdmin(){
   const panel = document.getElementById('panel-schedule');
   const [{data:courses},{data:promos},{data:teachers},{data:scheds}] = await Promise.all([
-    sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id,credits,semestre,volume_horaire').order('code'),
+    sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id,enseignant_nom,credits,semestre,volume_horaire').order('code'),
     pq(sb.from('promotions').select('id,nom').order('niveau')),
     sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom,code_id,is_active,compte_status)'),
     sb.from('schedules').select('*, courses(intitule), promotions(nom)').order('jour')
@@ -2703,11 +2703,12 @@ async function loadScheduleAdmin(){
     actif: !!t.users && t.users.compte_status === 'valide' && t.users.is_active !== false
   }));
 
-  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => {
+  let h = `<h2 class="sec">Cours</h2><input class="mini-input" id="courseSearch" placeholder="Rechercher un cours, un code ou un enseignant…" oninput="filterCourseList()"><div id="courseList">` + fmtEmpty(courses, c => {
     const t = c.enseignant_responsable_id ? teacherInfo(c.enseignant_responsable_id) : null;
-    const who = c.enseignant_responsable_id ? (t ? esc(teacherLabel(t)) + ' ' + teacherBadge(t) : 'Enseignant introuvable') : 'Aucun enseignant assigné';
+    const who = c.enseignant_responsable_id ? (t ? esc(teacherLabel(t)) + ' ' + teacherBadge(t) : 'Enseignant introuvable') : (c.enseignant_nom ? esc(c.enseignant_nom) + ' <i>(compte non lié)</i>' : 'Aucun enseignant assigné');
+    const pn = ((window.__promosCache || []).find(p => p.id === c.promotion_id) || {}).nom || '';
     return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div><div class="s">${who}</div>
-      <div class="s" style="font-size:10.5px;">${c.credits != null ? esc(c.credits) + ' crédit(s)' : 'crédits ?'} · ${c.semestre != null && c.semestre !== '' ? 'Semestre ' + esc(c.semestre) : 'semestre ?'} · ${c.volume_horaire != null ? esc(c.volume_horaire) + ' h' : 'heures ?'}</div></div>
+      <div class="s" style="font-size:10.5px;">${pn ? esc(pn.split(' ')[0]) + ' · ' : ''}${c.credits != null ? esc(c.credits) + ' crédit(s)' : 'crédits ?'} · ${c.semestre != null && c.semestre !== '' ? 'Semestre ' + esc(c.semestre) : 'semestre ?'} · ${c.volume_horaire != null ? esc(c.volume_horaire) + ' h' : 'heures ?'}</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openEditCourse('${c.id}')">Modifier</button>
         <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openChangeTeacher('${c.id}')">Changer l'enseignant</button>
@@ -2715,6 +2716,7 @@ async function loadScheduleAdmin(){
       <div id="ceBox${c.id}" style="width:100%;"></div>
       <div id="ctBox${c.id}" style="width:100%;"></div></div>`;
   });
+  h += '</div>';
   h += `<input class="mini-input" id="cCode" placeholder="Code du cours (ex: MU101)">
     <input class="mini-input" id="cIntitule" placeholder="Intitulé du cours">
     <select class="mini-input" id="cPromo"><option value="">— Promotion —</option>${promoOptions}</select>
@@ -2768,6 +2770,15 @@ function teacherPick(prefix, id){
   document.getElementById(prefix + 'S').innerHTML = '';
 }
 
+function filterCourseList(){
+  const norm = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const tokens = norm(document.getElementById('courseSearch').value).split(/\s+/).filter(Boolean);
+  document.querySelectorAll('#courseList > .list-item').forEach(el => {
+    const hay = norm(el.textContent);
+    el.style.display = tokens.every(t => hay.includes(t)) ? '' : 'none';
+  });
+}
+
 function openEditCourse(cid){
   const box = document.getElementById('ceBox' + cid);
   if(!box) return;
@@ -2775,6 +2786,7 @@ function openEditCourse(cid){
   const c = (window.__coursesCache || []).find(x => x.id === cid) || {};
   const sem = c.semestre == null ? '' : String(c.semestre);
   box.innerHTML = `<input class="mini-input" id="ceIntitule${cid}" placeholder="Intitulé" value="${esc(c.intitule || '')}">
+    <input class="mini-input" id="ceEns${cid}" placeholder="Nom de l'enseignant (texte, si pas encore de compte)" value="${esc(c.enseignant_nom || '')}">
     <input class="mini-input" id="ceCredits${cid}" type="number" placeholder="Crédits" value="${c.credits == null ? '' : esc(c.credits)}">
     <select class="mini-input" id="ceSem${cid}"><option value="">— Semestre —</option>
       <option value="1" ${sem === '1' ? 'selected' : ''}>Semestre 1</option><option value="2" ${sem === '2' ? 'selected' : ''}>Semestre 2</option></select>
@@ -2793,6 +2805,7 @@ async function saveEditCourse(cid){
   upd.credits = cr === '' ? null : parseInt(cr);
   if(sm !== '') upd.semestre = parseInt(sm);
   upd.volume_horaire = vo === '' ? null : parseInt(vo);
+  upd.enseignant_nom = document.getElementById('ceEns' + cid).value.trim() || null;
   const { data, error } = await sb.from('courses').update(upd).eq('id', cid).select();
   if(error){ alert('Erreur : ' + error.message); return; }
   if(!data || !data.length){ alert('Modification refusée : droits insuffisants (script SQL cours_gestion.sql pas encore exécuté ?).'); return; }
