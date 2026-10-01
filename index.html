@@ -556,12 +556,7 @@ async function openUserDetail(id){
       byYear(sb.from('payments').select('*').eq('student_id', id).order('created_at',{ascending:false}).limit(10))
     ]);
 
-    body += `<h2 class="sec">Notes</h2>` + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${esc(g.intitule||g.type_evaluation)}</div><div class="s">${esc(g.type_evaluation)}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
-    body += `<input class="mini-input" id="gIntitule" placeholder="Intitulé (ex: Interro biologie)">
-      <select class="mini-input" id="gType"><option value="interrogation">Interrogation</option><option value="tp">TP</option><option value="td">TD</option><option value="examen">Examen</option><option value="examen_final">Examen final</option></select>
-      <input class="mini-input" id="gNote" type="number" placeholder="Note obtenue" step="0.1">
-      <input class="mini-input" id="gMax" type="number" placeholder="Note maximale (ex: 20)" value="20" step="0.1">
-      <button class="mini-btn" onclick="addGrade('${id}')">Ajouter la note</button>`;
+    body += await gradesGridHtml(id, stu);
 
     body += `<h2 class="sec">Présences</h2>` + fmtEmpty(att, a => `<div class="list-item"><div><div class="t">${new Date(a.date_seance).toLocaleDateString()}</div></div><span class="badge ${a.statut==='present'?'b-ok':(a.statut==='retard'?'b-warn':'b-bad')}">${a.statut}</span></div>`);
     body += `<input class="mini-input" id="aDate" type="date">
@@ -1226,10 +1221,19 @@ async function generatePalmares(){
   let gq = sb.from('grades').select('student_id,note,note_max').in('student_id', ids);
   if(academic_year_id) gq = gq.eq('academic_year_id', academic_year_id);
   const { data: grades } = await gq;
-  const acc = {};
-  (grades||[]).forEach(g => { if(!(Number(g.note_max) > 0)) return; const a = acc[g.student_id] || (acc[g.student_id] = {sum:0,n:0}); a.sum += Number(g.note)/Number(g.note_max)*20; a.n++; });
+  const cids = [...new Set((grades || []).map(g => g.course_id).filter(Boolean))];
+  let coursesById = {};
+  if(cids.length){ const { data: cs } = await sb.from('courses').select('id,credits').in('id', cids); (cs || []).forEach(c => { coursesById[c.id] = c; }); }
+  const perStudent = {};
+  (grades || []).forEach(g => { (perStudent[g.student_id] = perStudent[g.student_id] || []).push(g); });
+  const yearAvg = sid => {
+    const gs = perStudent[sid] || [];
+    const byC = lmdGradesByCourse(gs);
+    const clist = Object.keys(byC).map(id => coursesById[id] || { id, credits: null });
+    return lmdWeighted(clist, byC);
+  };
 
-  const list = studs.map(s => { const a = acc[s.id]; const moy = a ? Math.round(a.sum/a.n*100)/100 : 0; return { s, moy, n: a?a.n:0 }; });
+  const list = studs.map(s => { const m = yearAvg(s.id); const moy = m == null ? 0 : Math.round(m*100)/100; return { s, moy, n: (perStudent[s.id] || []).length }; });
   list.sort((x,y) => y.moy - x.moy);
   let rang = 0, prevMoy = null;
   const rows = list.map((x,i) => {
@@ -2049,7 +2053,8 @@ async function runBackup(){
 function docsSectionHtml(sid){
   return `<h2 class="sec">Documents de l'étudiant (PDF)</h2>
     <div class="note">Générés pour l'année choisie dans le sélecteur en haut de l'écran.</div>
-    <button class="mini-btn" onclick="downloadStudentDoc('releve','${sid}')">Relevé de notes</button>
+    <button class="mini-btn" onclick="downloadBulletin('${sid}')">Bulletin de notes (crédits, moyennes)</button>
+    <button class="mini-btn" onclick="downloadStudentDoc('releve','${sid}')">Relevé de notes (détail des évaluations)</button>
     <button class="mini-btn" onclick="downloadStudentDoc('inscription','${sid}')">Attestation d'inscription</button>
     <button class="mini-btn" onclick="downloadStudentDoc('reussite','${sid}')">Attestation de réussite</button>`;
 }
@@ -2420,6 +2425,216 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(() => { queued = false; decorateStats(main); ensureHero(document.getElementById('panel-home')); });
   }).observe(main, { childList: true, subtree: true });
 });
+
+// ================= NOTES PAR COURS (système LMD) =================
+// Note d'un cours = 40 % interrogations + 60 % examen (si une seule des deux existe, elle compte à 100 %).
+// Moyenne d'un semestre / de l'année = moyenne des cours pondérée par les crédits.
+// Un cours est validé à partir de 10/20 ; un semestre est validé si sa moyenne est >= 10 (compensation).
+const PONDERATION = { cc: 0.4, exam: 0.6 };
+const EXAM_TYPES = ['examen', 'examen_final'];
+
+function lmdAvg(arr){ return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
+function lmdCourseAverage(cc, ex){
+  if(cc == null && ex == null) return null;
+  if(cc == null) return ex;
+  if(ex == null) return cc;
+  return cc * PONDERATION.cc + ex * PONDERATION.exam;
+}
+// notes (lignes de la table grades) -> { course_id: { ccAvg, exAvg, moy } } (tout ramené sur 20)
+function lmdGradesByCourse(grades){
+  const m = {};
+  (grades || []).forEach(g => {
+    if(!g.course_id || !(Number(g.note_max) > 0)) return;
+    const v = Number(g.note) / Number(g.note_max) * 20;
+    const o = m[g.course_id] || (m[g.course_id] = { cc: [], ex: [] });
+    (EXAM_TYPES.includes(g.type_evaluation) ? o.ex : o.cc).push(v);
+  });
+  Object.keys(m).forEach(k => { const o = m[k]; o.ccAvg = lmdAvg(o.cc); o.exAvg = lmdAvg(o.ex); o.moy = lmdCourseAverage(o.ccAvg, o.exAvg); });
+  return m;
+}
+// moyenne pondérée par les crédits (cours sans crédits : poids 1)
+function lmdWeighted(courses, byCourse){
+  let s = 0, w = 0;
+  (courses || []).forEach(c => {
+    const o = byCourse[c.id];
+    if(!o || o.moy == null) return;
+    const cr = Number(c.credits) > 0 ? Number(c.credits) : 1;
+    s += o.moy * cr; w += cr;
+  });
+  return w ? s / w : null;
+}
+const lmdFmt = v => (v == null ? '-' : Number(v).toFixed(2));
+const lmdSemLabel = k => (k === '-' || k == null || k === '' ? 'Semestre non défini' : 'Semestre ' + k);
+
+// ----- grille de saisie dans le dossier de l'étudiant -----
+async function gradesGridHtml(id, stu){
+  let h = `<h2 class="sec">Notes par cours (sur 20)</h2>`;
+  if(!stu.promotion_id) return h + `<div class="note">Assigne d'abord une promotion à l'étudiant.</div>`;
+  const cur = window.__curYear;
+  const editable = !!cur && vy() === cur.id;
+  const [{ data: courses }, { data: grades }] = await Promise.all([
+    sb.from('courses').select('id,code,intitule,credits,semestre,volume_horaire').eq('promotion_id', stu.promotion_id).order('code'),
+    byYear(sb.from('grades').select('id,course_id,type_evaluation,note,note_max').eq('student_id', id))
+  ]);
+  if(!(courses || []).length) return h + `<div class="note">Aucun cours dans cette promotion.</div>`;
+  if(!editable) h += `<div class="note">📁 Année passée : consultation seulement.</div>`;
+  else h += `<div class="note">Saisis seulement les points sur 20. Laisse vide si pas encore coté. Un champ vidé supprime la note.</div>`;
+
+  const rows = {};
+  (grades || []).forEach(g => { (rows[g.course_id + '|' + g.type_evaluation] = rows[g.course_id + '|' + g.type_evaluation] || []).push(g); });
+  const byCourse = lmdGradesByCourse(grades);
+  const cell = (cid, type) => {
+    const r = rows[cid + '|' + type] || [];
+    let val = '', dis = !editable, gid = '';
+    if(r.length === 1 && Number(r[0].note_max) === 20){ val = r[0].note; gid = r[0].id; }
+    else if(r.length >= 1){ val = (r.reduce((a, g) => a + Number(g.note) / Number(g.note_max) * 20, 0) / r.length).toFixed(2); dis = true; }
+    return `<input class="ggi" type="text" inputmode="decimal" placeholder="—" id="gg_${cid}_${type}" data-cid="${cid}" data-type="${type}" data-gid="${gid}" data-orig="${esc(val)}" value="${esc(val)}" ${dis ? 'disabled' : ''} oninput="onGridInput('${cid}')" style="width:64px;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);text-align:center;">`;
+  };
+
+  const bySem = {};
+  courses.forEach(c => { const k = c.semestre == null || c.semestre === '' ? '-' : String(c.semestre); (bySem[k] = bySem[k] || []).push(c); });
+  Object.keys(bySem).sort().forEach(k => {
+    const list = bySem[k];
+    const cr = list.reduce((t, c) => t + (Number(c.credits) || 0), 0);
+    h += `<div class="s" style="margin:12px 0 4px;font-weight:700;">${lmdSemLabel(k)} — ${list.length} cours · ${cr} crédits</div>`;
+    list.forEach(c => {
+      const o = byCourse[c.id];
+      h += `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
+        <div class="s" style="font-size:10.5px;">${c.credits != null ? esc(c.credits) + ' crédit(s)' : 'crédits ?'} · ${c.volume_horaire != null ? esc(c.volume_horaire) + ' h' : 'heures ?'}</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;">
+          <span>Interro</span>${cell(c.id, 'interrogation')}
+          <span>Examen</span>${cell(c.id, 'examen')}
+          <span style="margin-left:auto;">Moy. <b id="gm_${c.id}">${o && o.moy != null ? o.moy.toFixed(2) : '—'}</b></span>
+        </div></div>`;
+    });
+  });
+  if(editable) h += `<button class="mini-btn" style="margin-top:12px;" onclick="saveGradesGrid('${id}')">Enregistrer les notes</button>`;
+  h += `<button class="mini-btn" style="background:#a11a22;" onclick="downloadBulletin('${id}')">📄 Télécharger le bulletin (PDF)</button>`;
+  return h;
+}
+
+function onGridInput(cid){
+  const num = type => { const el = document.getElementById('gg_' + cid + '_' + type); if(!el) return null; const v = parseFloat(String(el.value).replace(',', '.')); return isNaN(v) ? null : v; };
+  const m = lmdCourseAverage(num('interrogation'), num('examen'));
+  const out = document.getElementById('gm_' + cid);
+  if(out) out.textContent = m == null ? '—' : m.toFixed(2);
+}
+
+async function saveGradesGrid(id){
+  const todo = [];
+  for(const el of document.querySelectorAll('.ggi:not([disabled])')){
+    const raw = String(el.value).trim().replace(',', '.');
+    const orig = String(el.getAttribute('data-orig') || '');
+    if(raw === orig) continue;
+    const gid = el.getAttribute('data-gid');
+    if(raw === ''){ if(gid) todo.push({ op: 'del', gid }); continue; }
+    const note = parseFloat(raw);
+    if(isNaN(note) || note < 0 || note > 20){ alert('Note invalide (entre 0 et 20) : ' + el.value); el.focus(); return; }
+    todo.push(gid ? { op: 'upd', gid, note } : { op: 'ins', cid: el.getAttribute('data-cid'), type: el.getAttribute('data-type'), note });
+  }
+  if(!todo.length){ alert('Aucune modification à enregistrer.'); return; }
+  const nDel = todo.filter(t => t.op === 'del').length;
+  if(nDel && !confirm(nDel + ' note(s) vont être supprimées. Continuer ?')) return;
+  const errors = [];
+  for(const t of todo){
+    let r;
+    if(t.op === 'ins') r = await sb.from('grades').insert({ student_id: id, course_id: t.cid, type_evaluation: t.type, intitule: t.type === 'examen' ? 'Examen' : 'Interrogation', note: t.note, note_max: 20, recorded_by: currentProfile.id }).select();
+    else if(t.op === 'upd') r = await sb.from('grades').update({ note: t.note, note_max: 20 }).eq('id', t.gid).select();
+    else r = await sb.from('grades').delete().eq('id', t.gid).select();
+    if(r.error) errors.push(r.error.message);
+    else if(!r.data || !r.data.length) errors.push('refusé (droits insuffisants : exécute le script notes_credits_bulletin.sql)');
+  }
+  if(errors.length){ alert(errors.length + ' erreur(s) : ' + errors[0]); }
+  else alert(todo.length + ' modification(s) enregistrée(s).');
+  openUserDetail(id);
+}
+
+// ----- bulletin de notes (PDF) -----
+async function downloadBulletin(sid){
+  if(!(window.jspdf && window.jspdf.jsPDF)){ alert("Le module PDF n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
+  const yid = vy();
+  if(!yid){ alert("Aucune année académique sélectionnée."); return; }
+  const year = yearLabel(yid);
+  const [stuRes, usrRes, enrRes, gradesRes] = await Promise.all([
+    sb.from('students').select('*').eq('id', sid).maybeSingle(),
+    sb.from('users').select('nom,postnom,prenom,code_id').eq('id', sid).maybeSingle(),
+    sb.from('student_enrollments').select('promotion_id,promotions(nom)').eq('student_id', sid).eq('academic_year_id', yid).maybeSingle(),
+    byYear(sb.from('grades').select('course_id,type_evaluation,note,note_max').eq('student_id', sid))
+  ]);
+  const stu = stuRes.data, enr = enrRes.data, u = usrRes.data || {};
+  if(!stu){ alert('Dossier étudiant introuvable.'); return; }
+  if(!enr){ alert("Cet étudiant n'a pas d'inscription pour l'année " + year + '.'); return; }
+  const grades = gradesRes.data || [];
+  const byCourse = lmdGradesByCourse(grades);
+
+  // cours : ceux de la promotion (année en cours) + ceux qui ont des notes
+  const ids = new Set(Object.keys(byCourse));
+  const cur = window.__curYear;
+  let promoCourses = [];
+  if(cur && yid === cur.id){
+    const r = await sb.from('courses').select('id,code,intitule,credits,semestre,volume_horaire').eq('promotion_id', enr.promotion_id).order('code');
+    promoCourses = r.data || [];
+    promoCourses.forEach(c => ids.add(c.id));
+  }
+  const missing = [...ids].filter(i => !promoCourses.some(c => c.id === i));
+  let extra = [];
+  if(missing.length){ const r = await sb.from('courses').select('id,code,intitule,credits,semestre,volume_horaire').in('id', missing); extra = r.data || []; }
+  const courses = promoCourses.concat(extra).sort((a, b) => String(a.semestre || '9').localeCompare(String(b.semestre || '9')) || String(a.code).localeCompare(String(b.code)));
+  if(!courses.length){ alert('Aucun cours pour cette année.'); return; }
+
+  const nom = [u.nom, u.postnom, u.prenom].filter(Boolean).join(' ') || stu.matricule;
+  const ident = u.code_id || stu.matricule || '';
+  const promo = enr.promotions ? enr.promotions.nom : '-';
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+  docHeaderPdf(doc);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('BULLETIN DE NOTES', pw / 2, 38, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  let y = 47;
+  [`Nom : ${nom}`, `ID : ${ident}`, `Promotion : ${promo}`, `Année académique : ${year}`].forEach(t => { doc.text(t, 14, y); y += 5.5; });
+  y += 2;
+
+  const bySem = {};
+  courses.forEach(c => { const k = c.semestre == null || c.semestre === '' ? '-' : String(c.semestre); (bySem[k] = bySem[k] || []).push(c); });
+  let totCr = 0, totAcq = 0, semAvgs = [];
+  for(const k of Object.keys(bySem).sort()){
+    const list = bySem[k];
+    if(y > ph - 70){ doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text(lmdSemLabel(k), 14, y);
+    doc.autoTable({
+      startY: y + 2,
+      head: [['N°', 'Cours', 'Crédits', 'Heures', 'Interro', 'Examen', 'Moy. /20']],
+      body: list.map((c, i) => { const o = byCourse[c.id] || {}; return [i + 1, c.intitule, c.credits == null ? '' : c.credits, c.volume_horaire == null ? '' : c.volume_horaire, lmdFmt(o.ccAvg), lmdFmt(o.exAvg), lmdFmt(o.moy)]; }),
+      styles: { fontSize: 8.5, cellPadding: 1.7 }, headStyles: { fillColor: [4, 30, 87] },
+      columnStyles: { 0: { cellWidth: 9 }, 2: { halign: 'right', cellWidth: 16 }, 3: { halign: 'right', cellWidth: 15 }, 4: { halign: 'right', cellWidth: 16 }, 5: { halign: 'right', cellWidth: 16 }, 6: { halign: 'right', cellWidth: 20 } },
+      margin: { left: 14, right: 14, bottom: 30 }
+    });
+    const cr = list.reduce((t, c) => t + (Number(c.credits) || 0), 0);
+    const avg = lmdWeighted(list, byCourse);
+    const validated = avg != null && avg >= 10;
+    const acq = validated ? cr : list.reduce((t, c) => { const o = byCourse[c.id]; return t + (o && o.moy != null && o.moy >= 10 ? (Number(c.credits) || 0) : 0); }, 0);
+    totCr += cr; totAcq += acq; if(avg != null) semAvgs.push({ avg, cr });
+    y = doc.lastAutoTable.finalY + 6;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+    doc.text(`Crédits : ${cr}  -  Moyenne du semestre : ${lmdFmt(avg)} / 20  -  Crédits acquis : ${acq}  -  ${avg == null ? 'Non coté' : (validated ? 'Semestre validé' : 'Semestre non validé')}`, 14, y);
+    y += 9;
+  }
+  const yAvg = semAvgs.length ? semAvgs.reduce((t, s) => t + s.avg * s.cr, 0) / semAvgs.reduce((t, s) => t + s.cr, 0) : null;
+  if(y > ph - 55){ doc.addPage(); y = 20; }
+  doc.setDrawColor(4, 30, 87); doc.line(14, y, pw - 14, y); y += 7;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text(`Moyenne annuelle : ${lmdFmt(yAvg)} / 20`, 14, y); y += 6;
+  doc.text(`Crédits acquis : ${totAcq} / ${totCr}`, 14, y); y += 6;
+  if(yAvg != null){ doc.text(`Mention : ${mention(yAvg)}  -  Décision : ${yAvg >= 10 ? 'Admis(e)' : 'Ajourné(e)'}`, 14, y); y += 6; }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
+  doc.text(`Note d'un cours = ${PONDERATION.cc * 100} % interrogations + ${PONDERATION.exam * 100} % examen. Moyennes pondérées par les crédits. Cours validé à partir de 10/20.`, 14, y + 2);
+  doc.setTextColor(0);
+  docFooterPdf(doc, y + 8);
+  doc.save(`Bulletin_${ident}_${year}.pdf`);
+}
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
 const prBadge = s => ({en_attente:['b-warn','En attente'], valide:['b-ok','Validé'], refuse:['b-bad','Refusé'], annule:['b-bad','Annulé']})[s] || ['b-warn', s];
