@@ -140,6 +140,23 @@ nav.tabs button.active{color:var(--navy); font-weight:700; border-top-color:var(
   :root:not([data-theme="light"]) .new-btn{background:linear-gradient(135deg,#0b3a9a,#1252c4);}
 }
 :root[data-theme="dark"]{ --bg:#0a1220; --card:#111d33; --text:#ecf2fa; --muted:#9db0c8; --border:#22334f; --blue2:#12a37a; }
+
+/* carte de partage (bas de l'application) */
+.share{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; margin:18px 0 6px; box-shadow:0 3px 12px rgba(4,30,87,.10); border-top:4px solid var(--red);}
+.share .sh-title{font-weight:800; font-size:15px; color:var(--navy);}
+.share .sh-sub{font-size:12.5px; color:var(--muted); margin:3px 0 10px; line-height:1.4;}
+.share .sh-main{width:100%; padding:12px; border:none; border-radius:11px; font-size:14px; font-weight:700; color:#fff; background:linear-gradient(135deg,#041e57,#0a3d7a); margin-bottom:8px;}
+.share .sh-btns{display:flex; flex-wrap:wrap; gap:6px;}
+.share .sh-btns button{flex:1 1 30%; padding:9px 6px; border:none; border-radius:9px; background:#33465a; color:#fff; font-size:12px; font-weight:600;}
+.share .sh-qr{display:flex; align-items:center; gap:12px; margin-top:12px;}
+.share .qrbox{flex:none; width:112px; height:112px; background:#fff; border-radius:10px; padding:4px; border:1px solid var(--border);}
+.share .qrbox svg{width:100%; height:100%; display:block;}
+.share .qrtxt{font-size:12px; color:var(--muted); line-height:1.45;} .share .qrtxt a{color:var(--blue2); font-weight:600;}
+.share .sh-links-title{font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 6px;}
+.share .sh-links{display:flex; flex-wrap:wrap; gap:6px;}
+.share .sh-pill{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:20px; overflow:hidden; background:var(--bg);}
+.share .sh-pill a{padding:7px 10px; font-size:12.5px; color:var(--text); text-decoration:none;}
+.share .sh-pill button{border:none; border-left:1px solid var(--border); background:transparent; color:var(--blue2); padding:7px 9px; font-size:13px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -282,6 +299,8 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
     </div>
 
     <div id="bannerBar"></div>
+
+    <div id="shareBar"></div>
 
     <div class="note" id="footNote"></div>
 
@@ -649,6 +668,7 @@ async function enter(profile){
   document.getElementById('hdrTitle').textContent = 'ISTM-MU';
   refreshHeaderAvatar();
   loadBanners(profile);
+  loadShare(profile);
   document.getElementById('hdrWho').textContent = `${roleLabels[profile.role]||profile.role} · ${profile.prenom} ${profile.nom}`;
   const tabs = tabsByRole[profile.role] || tabsByRole['etudiant'];
   const nav = document.getElementById('tabsNav');
@@ -770,8 +790,9 @@ async function loadSystemAdmin(){
     const b = actionLabels[l.action] || ['b-warn', l.action];
     return `<div class="list-item"><div><div class="t">${esc(l.description || l.action)}</div><div class="s">${esc(l.user_id ? (names[l.user_id] || 'Utilisateur') : 'Système')} · ${new Date(l.created_at).toLocaleString('fr-FR')}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`;
   });
-  panel.innerHTML = h + bannersAdminHtml();
+  panel.innerHTML = h + bannersAdminHtml() + shareAdminHtml();
   loadBannersAdminList();
+  loadShareAdmin();
 }
 
 async function savePerms(id){
@@ -2634,6 +2655,161 @@ async function downloadBulletin(sid){
   doc.setTextColor(0);
   docFooterPdf(doc, y + 8);
   doc.save(`Bulletin_${ident}_${year}.pdf`);
+}
+
+// ================= PARTAGE DE L'APPLICATION =================
+const APP_URL = 'https://jacquham.github.io/istm-mu/';
+const DEFAULT_SHARE_MSG = "Rejoins l'application de la section Médecine d'Urgence (ISTM-Tshikapa) :";
+const QR_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges" role="img" aria-label="QR code de l\'application ISTM-MU"><rect width="37" height="37" fill="#fff"/><path d="M4 4h7v1h-7zM12 4h2v1h-2zM19 4h2v1h-2zM22 4h3v1h-3zM26 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM18 5h2v1h-2zM26 5h1v1h-1zM32 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM12 6h1v1h-1zM15 6h5v1h-5zM23 6h2v1h-2zM26 6h1v1h-1zM28 6h3v1h-3zM32 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM12 7h2v1h-2zM15 7h1v1h-1zM21 7h2v1h-2zM24 7h1v1h-1zM26 7h1v1h-1zM28 7h3v1h-3zM32 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM12 8h4v1h-4zM17 8h1v1h-1zM23 8h1v1h-1zM26 8h1v1h-1zM28 8h3v1h-3zM32 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM13 9h1v1h-1zM16 9h1v1h-1zM18 9h1v1h-1zM21 9h3v1h-3zM26 9h1v1h-1zM32 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h7v1h-7zM13 11h1v1h-1zM15 11h1v1h-1zM17 11h5v1h-5zM24 11h1v1h-1zM4 12h4v1h-4zM10 12h1v1h-1zM12 12h1v1h-1zM17 12h6v1h-6zM25 12h1v1h-1zM28 12h3v1h-3zM32 12h1v1h-1zM4 13h1v1h-1zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM21 13h4v1h-4zM26 13h3v1h-3zM32 13h1v1h-1zM4 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM10 14h2v1h-2zM18 14h1v1h-1zM20 14h2v1h-2zM24 14h2v1h-2zM30 14h2v1h-2zM5 15h1v1h-1zM7 15h1v1h-1zM11 15h2v1h-2zM15 15h4v1h-4zM22 15h5v1h-5zM32 15h1v1h-1zM6 16h2v1h-2zM9 16h2v1h-2zM13 16h1v1h-1zM15 16h1v1h-1zM19 16h3v1h-3zM24 16h1v1h-1zM27 16h1v1h-1zM29 16h2v1h-2zM7 17h1v1h-1zM11 17h1v1h-1zM13 17h3v1h-3zM17 17h1v1h-1zM19 17h2v1h-2zM23 17h1v1h-1zM26 17h1v1h-1zM30 17h3v1h-3zM4 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM10 18h2v1h-2zM13 18h2v1h-2zM16 18h1v1h-1zM18 18h1v1h-1zM21 18h4v1h-4zM27 18h2v1h-2zM30 18h3v1h-3zM4 19h2v1h-2zM9 19h1v1h-1zM11 19h3v1h-3zM16 19h2v1h-2zM19 19h2v1h-2zM25 19h1v1h-1zM28 19h1v1h-1zM31 19h1v1h-1zM5 20h1v1h-1zM8 20h1v1h-1zM10 20h1v1h-1zM14 20h2v1h-2zM19 20h1v1h-1zM23 20h3v1h-3zM27 20h3v1h-3zM31 20h1v1h-1zM8 21h2v1h-2zM11 21h4v1h-4zM16 21h2v1h-2zM19 21h1v1h-1zM21 21h1v1h-1zM24 21h1v1h-1zM27 21h1v1h-1zM29 21h3v1h-3zM4 22h1v1h-1zM8 22h1v1h-1zM10 22h2v1h-2zM13 22h4v1h-4zM19 22h3v1h-3zM24 22h2v1h-2zM27 22h2v1h-2zM30 22h1v1h-1zM7 23h1v1h-1zM12 23h2v1h-2zM16 23h1v1h-1zM20 23h4v1h-4zM25 23h1v1h-1zM27 23h1v1h-1zM30 23h1v1h-1zM4 24h2v1h-2zM7 24h1v1h-1zM9 24h5v1h-5zM15 24h3v1h-3zM19 24h12v1h-12zM12 25h1v1h-1zM16 25h3v1h-3zM21 25h2v1h-2zM24 25h1v1h-1zM28 25h5v1h-5zM4 26h7v1h-7zM13 26h1v1h-1zM15 26h3v1h-3zM20 26h2v1h-2zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h2v1h-2zM31 26h1v1h-1zM4 27h1v1h-1zM10 27h1v1h-1zM22 27h1v1h-1zM24 27h1v1h-1zM28 27h2v1h-2zM31 27h1v1h-1zM4 28h1v1h-1zM6 28h3v1h-3zM10 28h1v1h-1zM16 28h1v1h-1zM18 28h1v1h-1zM21 28h1v1h-1zM24 28h5v1h-5zM30 28h2v1h-2zM4 29h1v1h-1zM6 29h3v1h-3zM10 29h1v1h-1zM12 29h2v1h-2zM15 29h2v1h-2zM18 29h5v1h-5zM25 29h1v1h-1zM27 29h3v1h-3zM32 29h1v1h-1zM4 30h1v1h-1zM6 30h3v1h-3zM10 30h1v1h-1zM12 30h1v1h-1zM15 30h1v1h-1zM17 30h1v1h-1zM20 30h2v1h-2zM24 30h1v1h-1zM27 30h1v1h-1zM30 30h1v1h-1zM32 30h1v1h-1zM4 31h1v1h-1zM10 31h1v1h-1zM12 31h2v1h-2zM15 31h1v1h-1zM18 31h3v1h-3zM24 31h1v1h-1zM26 31h1v1h-1zM29 31h1v1h-1zM31 31h1v1h-1zM4 32h7v1h-7zM12 32h1v1h-1zM16 32h1v1h-1zM18 32h1v1h-1zM20 32h1v1h-1zM22 32h1v1h-1zM24 32h2v1h-2zM27 32h2v1h-2zM31 32h1v1h-1z" fill="#041e57"/></svg>';
+
+function shareText(){ return window.__shareMsg || DEFAULT_SHARE_MSG; }
+
+function linkIcon(url){
+  const u = String(url || '').toLowerCase();
+  if(/facebook\.com|fb\.com|fb\.me/.test(u)) return '📘';
+  if(/wa\.me|whatsapp\.com/.test(u)) return '💬';
+  if(/youtube\.com|youtu\.be/.test(u)) return '▶️';
+  if(/instagram\.com/.test(u)) return '📷';
+  if(/tiktok\.com/.test(u)) return '🎵';
+  if(/t\.me|telegram/.test(u)) return '✈️';
+  if(/play\.google\.com/.test(u)) return '📱';
+  return '🌐';
+}
+
+async function loadShare(profile){
+  const el = document.getElementById('shareBar');
+  if(!el) return;
+  const [{ data: st }, { data: links }] = await Promise.all([
+    sb.from('app_settings').select('value').eq('key', 'share_message').maybeSingle(),
+    sb.from('share_links').select('*').eq('actif', true).order('ordre').order('created_at', { ascending: true })
+  ]);
+  if(st && st.value) window.__shareMsg = st.value;
+  const pills = (links || []).filter(l => /^https?:\/\//i.test(l.url)).map(l => `<span class="sh-pill">
+      <a href="${esc(l.url)}" target="_blank" rel="noopener">${linkIcon(l.url)} ${esc(l.titre)}</a>
+      <button onclick="shareLink('${l.id}')" aria-label="Partager ce lien" title="Partager ce lien">↗</button></span>`).join('');
+  window.__shareLinks = links || [];
+  el.innerHTML = `<div class="share">
+    <div class="sh-title">📲 Partager l'application</div>
+    <div class="sh-sub">Invite d'autres étudiants et enseignants de la section à rejoindre l'application.</div>
+    <button class="sh-main" onclick="shareApp()">Partager le lien</button>
+    <div class="sh-btns">
+      <button onclick="shareVia('whatsapp')" style="background:#1e7a3c;">💬 WhatsApp</button>
+      <button onclick="shareVia('facebook')" style="background:#1b5fc4;">📘 Facebook</button>
+      <button onclick="shareVia('sms')">✉️ SMS</button>
+      <button onclick="shareVia('email')">📧 E-mail</button>
+      <button onclick="copyAppLink()">🔗 Copier</button>
+    </div>
+    <div class="sh-qr">
+      <div class="qrbox">${QR_SVG}</div>
+      <div class="qrtxt">Scanne ce code avec un téléphone pour ouvrir l'application.<br><a href="javascript:void(0)" onclick="downloadQr()">Télécharger le QR code</a></div>
+    </div>
+    ${pills ? `<div class="sh-links-title">Nos liens</div><div class="sh-links">${pills}</div>` : ''}
+  </div>`;
+}
+
+async function shareApp(){
+  const data = { title: 'ISTM-MU', text: shareText(), url: APP_URL };
+  if(navigator.share){ try { await navigator.share(data); } catch(e) {} }
+  else copyAppLink();
+}
+
+async function shareLink(id){
+  const l = (window.__shareLinks || []).find(x => x.id === id);
+  if(!l) return;
+  const data = { title: l.titre, text: l.titre, url: l.url };
+  if(navigator.share){ try { await navigator.share(data); } catch(e) {} }
+  else { try { await navigator.clipboard.writeText(l.url); alert('Lien copié.'); } catch(e) { prompt('Copie ce lien :', l.url); } }
+}
+
+function shareVia(kind){
+  const t = shareText(), u = APP_URL, enc = encodeURIComponent;
+  const map = {
+    whatsapp: 'https://wa.me/?text=' + enc(t + ' ' + u),
+    facebook: 'https://www.facebook.com/sharer/sharer.php?u=' + enc(u),
+    sms: 'sms:?&body=' + enc(t + ' ' + u),
+    email: 'mailto:?subject=' + enc('Application ISTM-MU') + '&body=' + enc(t + '\n' + u)
+  };
+  if(kind === 'sms' || kind === 'email') window.location.href = map[kind];
+  else window.open(map[kind], '_blank', 'noopener');
+}
+
+async function copyAppLink(){
+  try { await navigator.clipboard.writeText(APP_URL); alert('Lien copié : ' + APP_URL); }
+  catch(e) { prompt('Copie ce lien :', APP_URL); }
+}
+
+function downloadQr(){
+  const img = new Image();
+  const url = URL.createObjectURL(new Blob([QR_SVG], { type: 'image/svg+xml' }));
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = c.height = 800;
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 800, 800);
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, 800, 800);
+    URL.revokeObjectURL(url);
+    c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'QR_ISTM-MU.png'; document.body.appendChild(a); a.click(); a.remove(); }, 'image/png');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert('Téléchargement impossible : fais une capture d\'écran du QR code.'); };
+  img.src = url;
+}
+
+// ----- gestion par l'administrateur central (onglet Système) -----
+function shareAdminHtml(){
+  return `<h2 class="sec">Partage de l'application</h2>
+    <div class="note">Le message ci-dessous accompagne le lien envoyé par WhatsApp, SMS, e-mail ou le bouton Partager. Les liens ajoutés s'affichent en bas de l'application.</div>
+    <textarea class="mini-input" id="shMsg" rows="3" placeholder="Message de partage"></textarea>
+    <button class="mini-btn" onclick="saveShareMsg()">Enregistrer le message</button>
+    <input class="mini-input" id="shTitre" placeholder="Nom du lien (ex : Page Facebook)">
+    <input class="mini-input" id="shUrl" placeholder="Adresse du lien (https://…)">
+    <button class="mini-btn" onclick="addShareLink()">Ajouter le lien</button>
+    <div id="shList"><div class="note">Chargement…</div></div>`;
+}
+
+async function loadShareAdmin(){
+  const box = document.getElementById('shMsg');
+  if(box) box.value = shareText();
+  const el = document.getElementById('shList');
+  if(!el) return;
+  const { data, error } = await sb.from('share_links').select('*').order('ordre').order('created_at', { ascending: true });
+  if(error){ el.innerHTML = `<div class="note">Impossible de charger les liens : ${esc(error.message)}</div>`; return; }
+  el.innerHTML = fmtEmpty(data, l => `<div class="list-item"><div><div class="t">${linkIcon(l.url)} ${esc(l.titre)}</div><div class="s" style="word-break:break-all;">${esc(l.url)}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;background:${l.actif ? '#1e7a3c' : '#6b7785'};" onclick="toggleShareLink('${l.id}', ${!l.actif})">${l.actif ? 'Actif' : 'Inactif'}</button>
+      <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteShareLink('${l.id}')">Suppr.</button>
+    </div></div>`);
+}
+
+async function saveShareMsg(){
+  const value = document.getElementById('shMsg').value.trim();
+  if(!value){ alert('Le message ne peut pas être vide.'); return; }
+  const { error } = await sb.from('app_settings').upsert({ key: 'share_message', value, updated_at: new Date().toISOString() });
+  if(error){ alert('Erreur : ' + error.message + '\n(Le script partage.sql est-il exécuté ?)'); return; }
+  window.__shareMsg = value;
+  alert('Message enregistré.');
+  loadShare(currentProfile);
+}
+
+async function addShareLink(){
+  const titre = document.getElementById('shTitre').value.trim();
+  const url = document.getElementById('shUrl').value.trim();
+  if(!titre){ alert('Merci de saisir un nom pour le lien.'); return; }
+  if(!/^https?:\/\//i.test(url)){ alert('Le lien doit commencer par https://'); return; }
+  const { error } = await sb.from('share_links').insert({ titre, url, created_by: currentProfile.id });
+  if(error){ alert('Erreur : ' + error.message + '\n(Le script partage.sql est-il exécuté ?)'); return; }
+  document.getElementById('shTitre').value = ''; document.getElementById('shUrl').value = '';
+  loadShareAdmin(); loadShare(currentProfile);
+}
+
+async function toggleShareLink(id, actif){
+  const { data, error } = await sb.from('share_links').update({ actif }).eq('id', id).select();
+  if(error || !data || !data.length){ alert('Modification refusée.'); return; }
+  loadShareAdmin(); loadShare(currentProfile);
+}
+
+async function deleteShareLink(id){
+  if(!confirm('Supprimer ce lien ?')) return;
+  const { data, error } = await sb.from('share_links').delete().eq('id', id).select();
+  if(error || !data || !data.length){ alert('Suppression refusée.'); return; }
+  loadShareAdmin(); loadShare(currentProfile);
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
