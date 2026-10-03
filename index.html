@@ -157,6 +157,12 @@ nav.tabs button.active{color:var(--navy); font-weight:700; border-top-color:var(
 .share .sh-pill{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:20px; overflow:hidden; background:var(--bg);}
 .share .sh-pill a{padding:7px 10px; font-size:12.5px; color:var(--text); text-decoration:none;}
 .share .sh-pill button{border:none; border-left:1px solid var(--border); background:transparent; color:var(--blue2); padding:7px 9px; font-size:13px;}
+
+/* assistant IA */
+.ai-chips{display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 10px;}
+.ai-chips button{border:1px solid var(--border); background:var(--bg); color:var(--text); border-radius:20px; padding:6px 10px; font-size:12px;}
+.ai-btns{display:flex; flex-wrap:wrap; gap:8px;}
+.ai-btns button{flex:1 1 44%; border:none; border-radius:10px; padding:11px 8px; color:#fff; font-weight:700; font-size:13.5px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -287,6 +293,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
     <div class="tab-panel" data-tab="more">
       <div id="messagesSection"></div>
+      <div id="aiSection"></div>
       <div id="documentsSection"></div>
       <div id="planningSection"></div>
       <div id="materialsSection"></div>
@@ -667,6 +674,7 @@ async function enter(profile){
   document.getElementById('app').style.display='flex';
   document.getElementById('hdrTitle').textContent = 'ISTM-MU';
   refreshHeaderAvatar();
+  renderAssistant();
   loadBanners(profile);
   loadShare(profile);
   document.getElementById('hdrWho').textContent = `${roleLabels[profile.role]||profile.role} · ${profile.prenom} ${profile.nom}`;
@@ -2810,6 +2818,57 @@ async function deleteShareLink(id){
   const { data, error } = await sb.from('share_links').delete().eq('id', id).select();
   if(error || !data || !data.length){ alert('Suppression refusée.'); return; }
   loadShareAdmin(); loadShare(currentProfile);
+}
+
+// ================= ASSISTANT IA (sans clé, sans coût) =================
+const AI_PREFACE = "Tu es un tuteur pour étudiants en sciences infirmières, anesthésie-réanimation et médecine d'urgence (niveau licence, RDC). Réponds en français, de façon claire et structurée, en t'appuyant sur les recommandations ou protocoles reconnus quand c'est possible, et rappelle de vérifier avec les cours et les enseignants. Ne donne pas de conseil pour un patient réel. Question : ";
+const AI_SUGGESTIONS = [
+  "Explique la réanimation cardio-pulmonaire (RCP) chez l'adulte",
+  "Pharmacologie de l'adrénaline en urgence",
+  "Surveillance d'un patient après anesthésie",
+  "Évaluation et prise en charge de la douleur",
+  "Les gestes de premiers secours essentiels",
+  "Comment rédiger un plan de recherche scientifique ?"
+];
+
+function renderAssistant(){
+  const el = document.getElementById('aiSection');
+  if(!el) return;
+  el.innerHTML = `<h2 class="sec">Assistant IA pour tes recherches</h2>
+    <div class="note">Pose ta question en <b>médecine, réanimation, urgences ou sciences infirmières</b>, puis choisis un assistant : ta question s'y ouvre déjà préparée. Gratuit avec ton propre compte.</div>
+    <textarea class="mini-input" id="aiQ" rows="3" maxlength="800" placeholder="Ex : Explique la RCP chez l'adulte"></textarea>
+    <div class="ai-chips">${AI_SUGGESTIONS.map((q, i) => `<button onclick="aiPick(${i})">${esc(q)}</button>`).join('')}</div>
+    <div class="ai-btns">
+      <button style="background:#10a37f;" onclick="askAI('chatgpt')">ChatGPT</button>
+      <button style="background:#1b5fc4;" onclick="askAI('gemini')">Gemini</button>
+      <button style="background:#c15f3c;" onclick="askAI('claude')">Claude</button>
+      <button style="background:#0866ff;" onclick="askAI('meta')">Meta AI</button>
+    </div>
+    <div id="aiMsg" class="s" style="margin:6px 0;"></div>
+    <div class="note" style="border-color:rgba(211,18,27,.45);">⚠️ Une IA peut se tromper. <b>Vérifie toujours</b> avec tes cours et tes enseignants. Ne l'utilise pas pour décider d'un traitement réel et n'écris jamais de données personnelles de patients.<br>Astuce : dans WhatsApp, tu peux aussi poser ta question à Meta AI.</div>`;
+}
+
+function aiPick(i){
+  const q = document.getElementById('aiQ');
+  if(q){ q.value = AI_SUGGESTIONS[i]; q.focus(); }
+}
+
+async function askAI(which){
+  const q = (document.getElementById('aiQ').value || '').trim();
+  const msg = document.getElementById('aiMsg');
+  if(!q){ msg.textContent = 'Écris d\'abord ta question.'; return; }
+  const prompt = AI_PREFACE + q;
+  const enc = encodeURIComponent;
+  let copied = false;
+  try { await navigator.clipboard.writeText(prompt); copied = true; } catch(e) {}
+  const urls = {
+    chatgpt: 'https://chatgpt.com/?q=' + enc(prompt),
+    claude: 'https://claude.ai/new?q=' + enc(prompt),
+    gemini: 'https://gemini.google.com/app',
+    meta: 'https://www.meta.ai/'
+  };
+  msg.textContent = copied ? 'Question copiée. Si elle n\'apparaît pas toute seule, colle-la (appui long, puis Coller).' : 'Copie ta question puis colle-la dans l\'assistant.';
+  window.open(urls[which], '_blank', 'noopener');
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
