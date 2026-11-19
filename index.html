@@ -118,7 +118,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
   </div>
 
   <div style="margin-top:14px;" id="gateLinks">
-    <button style="background:none;border:none;color:#cfe1ee;font-size:12.5px;text-decoration:underline;" onclick="showSignup()">Créer un compte</button>
+    <button style="display:none;background:none;border:none;color:#cfe1ee;font-size:12.5px;text-decoration:underline;" onclick="showSignup()">Créer un compte</button>
     <div style="margin-top:8px;"><a href="confidentialite.html" style="color:#cfe1ee;font-size:11.5px;">Politique de confidentialité</a></div>
   </div>
 
@@ -403,7 +403,7 @@ async function loadAccountsAdmin(){
   window.__accountsCache = rows || [];
 
   const panel = document.querySelector('.tab-panel[data-tab="accounts"]');
-  let h = createStudentCardHtml(promos);
+  let h = createAccountCardHtml(promos);
   h += '<h2 class="sec">Comptes en attente de validation</h2>';
   h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
       <div style="display:flex;gap:6px;">
@@ -429,62 +429,91 @@ async function loadAccountsAdmin(){
   renderAccountsList();
 }
 
-function createStudentCardHtml(promos){
-  const opts = (promos||[]).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
-  return `<h2 class="sec">Créer un compte étudiant</h2>
-  <div class="note">Réservé à l'administrateur central. Le compte est créé directement et actif. L'étudiant changera le mot de passe temporaire à sa première connexion.</div>
-  <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-    <input class="mini-input" id="cs_nom" placeholder="Nom *">
-    <input class="mini-input" id="cs_postnom" placeholder="Postnom">
-    <input class="mini-input" id="cs_prenom" placeholder="Prénom *">
-    <select class="mini-input" id="cs_sexe"><option value="">Sexe</option><option value="M">Masculin</option><option value="F">Féminin</option></select>
-    <input class="mini-input" id="cs_naissance" type="date" title="Date de naissance">
-    <input class="mini-input" id="cs_lieu" placeholder="Lieu de naissance">
-    <input class="mini-input" id="cs_tel" placeholder="Téléphone">
-    <input class="mini-input" id="cs_adresse" placeholder="Adresse">
-    <input class="mini-input" id="cs_email" placeholder="Email (facultatif)">
-    <input class="mini-input" id="cs_matricule" placeholder="Matricule (vide = automatique)">
-    <select class="mini-input" id="cs_promo"><option value="">Promotion (facultatif)</option>${opts}</select>
-    <input class="mini-input" id="cs_contact" placeholder="Personne à contacter en urgence">
-    <input class="mini-input" id="cs_contact_tel" placeholder="Téléphone de cette personne">
-    <button class="mini-btn" id="cs_btn" onclick="createStudentAccount()">Créer le compte</button>
-    <div id="cs_result"></div>
-  </div>`;
+function createAccountCardHtml(promos){
+  window.__promosCache = promos || [];
+  return `<h2 class="sec">Créer un compte</h2>
+  <div class="note">Réservé à l'administrateur central. Le compte est créé directement, avec un mot de passe temporaire.</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    <button class="mini-btn" onclick="openAccountForm('etudiant')">Étudiant</button>
+    <button class="mini-btn" onclick="openAccountForm('enseignant')">Enseignant</button>
+    <button class="mini-btn" onclick="openAccountForm('admin_academique')">Administrateur</button>
+  </div>
+  <div id="ca_form" style="margin-top:10px;"></div>`;
 }
 
-async function createStudentAccount(){
-  const v = id => document.getElementById(id).value.trim();
-  const out = document.getElementById('cs_result');
-  const btn = document.getElementById('cs_btn');
+const CA_ROLES = { etudiant: 'Étudiant', enseignant: 'Enseignant', admin_academique: 'Administrateur académique' };
+
+function openAccountForm(role){
+  const opts = (window.__promosCache || []).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+  const common = `
+    <input class="mini-input" id="ca_nom" placeholder="Nom *">
+    <input class="mini-input" id="ca_postnom" placeholder="Postnom">
+    <input class="mini-input" id="ca_prenom" placeholder="Prénom *">
+    <select class="mini-input" id="ca_sexe"><option value="">Sexe</option><option value="M">Masculin</option><option value="F">Féminin</option></select>
+    <input class="mini-input" id="ca_tel" placeholder="Téléphone">
+    <input class="mini-input" id="ca_email" placeholder="Email (facultatif)">`;
+  let extra = '';
+  if(role === 'etudiant'){
+    extra = `
+    <input class="mini-input" id="ca_naissance" type="date" title="Date de naissance">
+    <input class="mini-input" id="ca_lieu" placeholder="Lieu de naissance">
+    <input class="mini-input" id="ca_adresse" placeholder="Adresse">
+    <input class="mini-input" id="ca_matricule" placeholder="Matricule (vide = automatique)">
+    <select class="mini-input" id="ca_promo"><option value="">Promotion (facultatif)</option>${opts}</select>
+    <input class="mini-input" id="ca_contact" placeholder="Personne à contacter en urgence">
+    <input class="mini-input" id="ca_contact_tel" placeholder="Téléphone de cette personne">`;
+  } else if(role === 'enseignant'){
+    extra = `<input class="mini-input" id="ca_spec" placeholder="Spécialité (facultatif)">`;
+  }
+  document.getElementById('ca_form').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <h2 class="sec" style="margin-top:4px;">Nouveau compte : ${CA_ROLES[role]}</h2>
+      ${common}${extra}
+      <button class="mini-btn" id="ca_btn" onclick="createAccount('${role}')">Créer le compte</button>
+      <button class="mini-btn" style="background:none;" onclick="closeAccountForm()">Annuler</button>
+      <div id="ca_result"></div>
+    </div>`;
+}
+
+function closeAccountForm(){
+  document.getElementById('ca_form').innerHTML = '';
+}
+
+async function createAccount(role){
+  const v = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const out = document.getElementById('ca_result');
+  const btn = document.getElementById('ca_btn');
   out.innerHTML = '';
-  if(!v('cs_nom') || !v('cs_prenom')){ out.innerHTML = '<div class="note">Nom et prénom sont obligatoires.</div>'; return; }
+  if(!v('ca_nom') || !v('ca_prenom')){ out.innerHTML = '<div class="note">Nom et prénom sont obligatoires.</div>'; return; }
   btn.disabled = true; btn.textContent = 'Création en cours…';
   const cur = window.__curYear;
-  const { data, error } = await sb.rpc('creer_compte_etudiant', { p: {
-    nom: v('cs_nom'), postnom: v('cs_postnom'), prenom: v('cs_prenom'),
-    sexe: v('cs_sexe'), date_naissance: v('cs_naissance') || null, lieu_naissance: v('cs_lieu'),
-    telephone: v('cs_tel'), adresse: v('cs_adresse'), email: v('cs_email'), matricule: v('cs_matricule'),
-    promotion_id: v('cs_promo') || null, academic_year_id: cur ? cur.id : null,
-    contact_nom: v('cs_contact'), contact_tel: v('cs_contact_tel')
-  }});
+  const body = {
+    role, nom: v('ca_nom'), postnom: v('ca_postnom'), prenom: v('ca_prenom'), sexe: v('ca_sexe'),
+    telephone: v('ca_tel'), email: v('ca_email'),
+    date_naissance: v('ca_naissance') || null, lieu_naissance: v('ca_lieu'), adresse: v('ca_adresse'),
+    matricule: v('ca_matricule'), promotion_id: v('ca_promo') || null,
+    academic_year_id: cur ? cur.id : null,
+    contact_nom: v('ca_contact'), contact_tel: v('ca_contact_tel'), specialite: v('ca_spec')
+  };
+  const fn = role === 'etudiant' ? 'creer_compte_etudiant' : 'creer_compte_personnel';
+  const { data, error } = await sb.rpc(fn, { p: body });
   btn.disabled = false; btn.textContent = 'Créer le compte';
   if(error || !data || !data.ok){
-    out.innerHTML = `<div class="note">⚠️ ${esc((data && data.error) || (error && error.message) || 'Erreur inconnue')}</div>`;
+    out.innerHTML = `<div class="note">⚠️ ${esc((error && error.message) || 'Erreur inconnue')}</div>`;
     return;
   }
   const creds = `Identifiant : ${data.email}\nMot de passe temporaire : ${data.password}`;
   out.innerHTML = `<div class="note" style="border-color:var(--green);">
-    ✅ Compte créé pour <b>${esc(data.nom)}</b>.<br>
-    Matricule : <b>${esc(data.matricule)}</b><br>
+    ✅ Compte créé pour <b>${esc(data.nom)}</b> (${esc(CA_ROLES[role])}).<br>
+    Matricule / code : <b>${esc(data.matricule)}</b><br>
     Identifiant : <b>${esc(data.email)}</b><br>
     Mot de passe temporaire : <b>${esc(data.password)}</b><br>
-    <span style="font-size:12px;">Note-le ou donne-le à l'étudiant maintenant : il ne sera plus affiché.</span></div>
-    <button class="mini-btn" id="cs_copy">Copier les identifiants</button>`;
-  document.getElementById('cs_copy').onclick = () => {
-    try { navigator.clipboard.writeText(creds); document.getElementById('cs_copy').textContent = 'Copié ✓'; } catch(e) {}
+    <span style="font-size:12px;">Note-le ou donne-le maintenant : il ne sera plus affiché.</span></div>
+    <button class="mini-btn" id="ca_copy">Copier les identifiants</button>`;
+  document.getElementById('ca_copy').onclick = () => {
+    try { navigator.clipboard.writeText(creds); document.getElementById('ca_copy').textContent = 'Copié ✓'; } catch(e) {}
   };
-  ['cs_nom','cs_postnom','cs_prenom','cs_sexe','cs_naissance','cs_lieu','cs_tel','cs_adresse','cs_email','cs_matricule','cs_promo','cs_contact','cs_contact_tel']
-    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.querySelectorAll('#ca_form input, #ca_form select').forEach(el => { el.value = ''; });
 }
 
 function renderAccountsList(){
