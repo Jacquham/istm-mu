@@ -6,8 +6,8 @@
 <title>ISTM-MU</title>
 <style>
 :root{
-  --blue:#0b5d4b; --blue2:#0b8a69; --green:#1c8a5c; --bg:#eef7f3; --card:#ffffff;
-  --text:#12241d; --muted:#587068; --border:#d8e8e1; --danger:#c0392b; --warn:#c98a12;
+  --blue:#0b3d64; --blue2:#125a8c; --green:#1c8a5c; --bg:#f4f7f9; --card:#ffffff;
+  --text:#16232b; --muted:#5c6b74; --border:#e1e7ea; --danger:#c0392b; --warn:#c98a12;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -46,12 +46,9 @@ h2.sec{font-size:14px; color:var(--muted); margin:18px 0 8px; text-transform:upp
 .list-item .t{font-size:13.5px; font-weight:600;} .list-item .s{font-size:11.5px; color:var(--muted);}
 .badge{font-size:10.5px; padding:3px 8px; border-radius:20px; font-weight:600;}
 .b-ok{background:#e3f5ec; color:var(--green);} .b-warn{background:#fbeed7; color:var(--warn);} .b-bad{background:#fbe4e1; color:var(--danger);}
-:root[data-theme="dark"] .b-ok{background:#12321f; color:#3ddbae;} :root[data-theme="dark"] .b-warn{background:#3a2a0c; color:#f0b84a;} :root[data-theme="dark"] .b-bad{background:#3a1512; color:#ff8a7a;}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]) .b-ok{background:#12321f; color:#3ddbae;}
-  :root:not([data-theme="light"]) .b-warn{background:#3a2a0c; color:#f0b84a;}
-  :root:not([data-theme="light"]) .b-bad{background:#3a1512; color:#ff8a7a;}
-}
+:root[data-theme="dark"] .b-ok, :root:not([data-theme="light"]) .b-ok{background:#12321f;}
+:root[data-theme="dark"] .b-warn, :root:not([data-theme="light"]) .b-warn{background:#3a2a0c;}
+:root[data-theme="dark"] .b-bad, :root:not([data-theme="light"]) .b-bad{background:#3a1512;}
 nav.tabs{position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--border); display:flex; padding-bottom:env(safe-area-inset-bottom,0px);}
 nav.tabs button{flex:1; background:none; border:none; padding:10px 4px 8px; font-size:10.5px; color:var(--muted);}
 nav.tabs button .ic{display:block; font-size:18px; margin-bottom:2px;}
@@ -82,87 +79,9 @@ header.topbar .right{display:flex;align-items:center;gap:8px;}
 .detail-header{position:sticky;top:0;background:var(--blue);color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;display:flex;align-items:center;gap:10px;}
 .detail-header button{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;}
 .detail-body{padding:14px;max-width:640px;margin:0 auto 40px;}
-.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--blue2);color:#fff;font-weight:700;overflow:hidden;flex:none;}
-.banner{position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:18px 0 4px;}
-.banner img{display:block;width:100%;max-height:190px;object-fit:cover;}
-.banner .btag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);color:#fff;font-size:10.5px;padding:3px 8px;border-radius:20px;}
-.banner .bbody{padding:12px 14px 14px;} .banner .bt{font-weight:700;font-size:14.5px;margin-bottom:4px;}
-.banner .bx{font-size:13px;color:var(--muted);line-height:1.45;} .banner a{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--blue2);}
-.banner .bdots{display:flex;justify-content:center;gap:6px;padding:0 0 10px;} .banner .bdots span{width:7px;height:7px;border-radius:50%;background:var(--border);cursor:pointer;} .banner .bdots span.on{background:var(--blue2);}
 .mini-input{width:100%;padding:10px;margin-bottom:8px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13.5px;}
 .mini-btn{width:100%;padding:10px;border-radius:9px;background:var(--blue2);color:#fff;border:none;font-size:13px;font-weight:600;margin-bottom:14px;}
 .clickable{cursor:pointer;}
-
-/* ================= THEME MEDICAL : bleu nuit + rouge (logo Médecine d'Urgence) + vert et jaune (logo ISTM) ================= */
-:root{ --navy:#041e57; --red:#d3121b; --gold:#f5c400; --teal:#12a37a; }
-body{background:radial-gradient(circle at 100% 0%, rgba(245,196,0,.10), transparent 42%), radial-gradient(circle at 0% 100%, rgba(15,157,120,.13), transparent 46%), radial-gradient(circle at 0% 0%, rgba(4,30,87,.07), transparent 40%), var(--bg); background-attachment:fixed;}
-header.topbar{background:linear-gradient(135deg,#041e57,#0a4a72 58%,#0b8a69); border-bottom:3px solid var(--red); box-shadow:0 4px 0 var(--gold), 0 7px 14px rgba(4,30,87,.25);}
-header.topbar .logo-mini{width:34px;height:34px;background:#fff;border-radius:10px;padding:1px;box-shadow:0 1px 4px rgba(0,0,0,.25);}
-header.topbar .ttl{font-size:16px;letter-spacing:.02em;}
-.detail-header{background:linear-gradient(135deg,#041e57,#0a4a72 58%,#0b8a69); border-bottom:3px solid var(--red);}
-#gate{background:linear-gradient(160deg,#041e57,#0a4a72 55%,#0b8a69);}
-#gate p{color:#d7e6f3;}
-h2.sec{color:var(--navy); display:flex; align-items:center; gap:8px;}
-h2.sec::before{content:''; width:4px; height:14px; border-radius:2px; background:linear-gradient(var(--red), var(--gold)); flex:none;}
-.list-item{border-left:4px solid rgba(15,157,120,.45);}
-nav.tabs{border-top:2px solid rgba(4,30,87,.18);}
-nav.tabs button{border-top:3px solid transparent;}
-nav.tabs button.active{color:var(--navy); font-weight:700; border-top-color:var(--red); background:linear-gradient(180deg, rgba(211,18,27,.07), transparent);}
-.note{border-color:rgba(4,30,87,.25);}
-.mini-btn{background:linear-gradient(135deg,#041e57,#0a3d7a); box-shadow:0 2px 6px rgba(4,30,87,.28);}
-.new-btn{background:linear-gradient(135deg,#041e57,#0a3d7a);}
-.bell .dot{background:var(--red);}
-
-/* tuiles de chiffres colorées */
-.stat{position:relative; overflow:hidden; border-left:5px solid var(--ac,#0b8a69); padding-right:46px; background:linear-gradient(135deg, color-mix(in srgb, var(--ac,#0b8a69) 13%, var(--card)), var(--card) 70%);}
-.grid .stat:nth-child(4n+1){--ac:#0b8a69;} .grid .stat:nth-child(4n+2){--ac:#e0a800;} .grid .stat:nth-child(4n+3){--ac:#d3121b;} .grid .stat:nth-child(4n+4){--ac:#2a4fb0;}
-.stat .sic{position:absolute; right:9px; top:9px; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:17px; background:color-mix(in srgb, var(--ac,#0b8a69) 20%, transparent);}
-
-/* carte d'accueil illustrée avec le logo Médecine d'Urgence */
-.hero{position:relative; overflow:hidden; border-radius:18px; padding:18px 16px 14px; margin:0 0 6px; color:#fff; background:linear-gradient(135deg,#041e57,#0a3d7a 52%,#0b8a69); box-shadow:0 6px 18px rgba(4,30,87,.30);}
-.hero::before{content:''; position:absolute; left:-34px; bottom:-46px; width:120px; height:120px; border-radius:50%; background:rgba(211,18,27,.30);}
-.hero::after{content:''; position:absolute; right:-30px; top:-34px; width:130px; height:130px; border-radius:50%; background:rgba(245,196,0,.18);}
-.hero .hi,.hero .sub,.hero .motto{position:relative; z-index:1; padding-right:98px;}
-.hero .hi{font-size:19px; font-weight:800;}
-.hero .sub{font-size:12.5px; opacity:.93; margin-top:3px;}
-.hero .motto{font-size:11.5px; font-style:italic; color:#ffe680; margin-top:8px;}
-.hero .emblem{position:absolute; right:12px; top:12px; z-index:2; width:88px; height:88px; border-radius:50%; background:#fff; border:3px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,.35);}
-.hero .ecg{display:block; width:100%; height:38px; margin-top:8px; position:relative; z-index:1;}
-.hero .ecg path{stroke:#ffd83a; stroke-width:2.4; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:420; stroke-dashoffset:420; animation:ecgdraw 3.2s ease-in-out infinite;}
-@keyframes ecgdraw{0%{stroke-dashoffset:420;} 55%{stroke-dashoffset:0;} 100%{stroke-dashoffset:-420;}}
-@media (prefers-reduced-motion: reduce){ .hero .ecg path{animation:none; stroke-dashoffset:0;} }
-
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){ --bg:#0a1220; --card:#111d33; --text:#ecf2fa; --muted:#9db0c8; --border:#22334f; --blue2:#12a37a; }
-  :root:not([data-theme="light"]) nav.tabs button.active{color:#9cc0ff;}
-  :root:not([data-theme="light"]) h2.sec{color:#9cc0ff;}
-  :root:not([data-theme="light"]) .mini-btn{background:linear-gradient(135deg,#0b3a9a,#1252c4);}
-  :root:not([data-theme="light"]) .new-btn{background:linear-gradient(135deg,#0b3a9a,#1252c4);}
-}
-:root[data-theme="dark"]{ --bg:#0a1220; --card:#111d33; --text:#ecf2fa; --muted:#9db0c8; --border:#22334f; --blue2:#12a37a; }
-
-/* carte de partage (bas de l'application) */
-.share{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; margin:18px 0 6px; box-shadow:0 3px 12px rgba(4,30,87,.10); border-top:4px solid var(--red);}
-.share .sh-title{font-weight:800; font-size:15px; color:var(--navy);}
-.share .sh-sub{font-size:12.5px; color:var(--muted); margin:3px 0 10px; line-height:1.4;}
-.share .sh-main{width:100%; padding:12px; border:none; border-radius:11px; font-size:14px; font-weight:700; color:#fff; background:linear-gradient(135deg,#041e57,#0a3d7a); margin-bottom:8px;}
-.share .sh-btns{display:flex; flex-wrap:wrap; gap:6px;}
-.share .sh-btns button{flex:1 1 30%; padding:9px 6px; border:none; border-radius:9px; background:#33465a; color:#fff; font-size:12px; font-weight:600;}
-.share .sh-qr{display:flex; align-items:center; gap:12px; margin-top:12px;}
-.share .qrbox{flex:none; width:112px; height:112px; background:#fff; border-radius:10px; padding:4px; border:1px solid var(--border);}
-.share .qrbox svg{width:100%; height:100%; display:block;}
-.share .qrtxt{font-size:12px; color:var(--muted); line-height:1.45;} .share .qrtxt a{color:var(--blue2); font-weight:600;}
-.share .sh-links-title{font-size:12px; font-weight:700; color:var(--muted); margin:12px 0 6px;}
-.share .sh-links{display:flex; flex-wrap:wrap; gap:6px;}
-.share .sh-pill{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:20px; overflow:hidden; background:var(--bg);}
-.share .sh-pill a{padding:7px 10px; font-size:12.5px; color:var(--text); text-decoration:none;}
-.share .sh-pill button{border:none; border-left:1px solid var(--border); background:transparent; color:var(--blue2); padding:7px 9px; font-size:13px;}
-
-/* assistant IA */
-.ai-chips{display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 10px;}
-.ai-chips button{border:1px solid var(--border); background:var(--bg); color:var(--text); border-radius:20px; padding:6px 10px; font-size:12px;}
-.ai-btns{display:flex; flex-wrap:wrap; gap:8px;}
-.ai-btns button{flex:1 1 44%; border:none; border-radius:10px; padding:11px 8px; color:#fff; font-weight:700; font-size:13.5px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -175,7 +94,7 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="theme-color" content="#041e57">
+<meta name="theme-color" content="#0b3d64">
 <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
@@ -235,7 +154,6 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <div><div class="ttl" id="hdrTitle">ISTM-MU</div><div class="who" id="hdrWho">—</div></div>
     </div>
     <div class="right">
-      <span id="hdrAvatar" onclick="openMyProfile()" style="cursor:pointer;display:inline-flex;"></span>
       <button class="bell" onclick="toggleAlerts()">🔔<span class="dot" id="alertDot"></span></button>
       <button onclick="logout()">Changer</button>
     </div>
@@ -293,7 +211,6 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
     <div class="tab-panel" data-tab="more">
       <div id="messagesSection"></div>
-      <div id="aiSection"></div>
       <div id="documentsSection"></div>
       <div id="planningSection"></div>
       <div id="materialsSection"></div>
@@ -304,10 +221,6 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY);
       <div id="announcementsPublish"></div>
       <div id="announcementsList"><div class="note">Chargement…</div></div>
     </div>
-
-    <div id="bannerBar"></div>
-
-    <div id="shareBar"></div>
 
     <div class="note" id="footNote"></div>
 
@@ -335,7 +248,14 @@ async function doLogin(){
   errEl.textContent = '';
   if(!email || !pass){ errEl.textContent = 'Renseigne email et mot de passe.'; return; }
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if(error){ errEl.textContent = "Connexion refusée : email ou mot de passe incorrect."; return; }
+  if(error){
+    const m = (error.message||'').toLowerCase();
+    const detail = ' (détail : ' + (error.message||'inconnu') + ')';
+    errEl.textContent = m.includes('not confirmed')
+      ? "Ton email n'est pas encore confirmé. Demande à l'administration de le confirmer." + detail
+      : "Connexion refusée : email ou mot de passe incorrect." + detail;
+    return;
+  }
   window.__justLoggedIn = true;
   await loadProfileAndEnter();
 }
@@ -475,7 +395,7 @@ async function validateFromHome(id, status){
 
 async function loadAccountsAdmin(){
   const { data: pending } = await sb.from('users').select('id,nom,postnom,prenom,role,code_id,created_at').eq('compte_status','en_attente').order('created_at',{ascending:true});
-  const rows = await fetchAll(() => sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,photo_path,created_at').order('created_at', { ascending:false }).order('id'));
+  const rows = await fetchAll(() => sb.from('users').select('id,nom,postnom,prenom,role,code_id,email,telephone,is_active,compte_status,created_at').order('created_at', { ascending:false }).order('id'));
   const enr = await fetchAll(() => byYear(sb.from('student_enrollments').select('student_id,promotion_id,promotions(nom)').order('student_id')));
   const { data: promos } = await pq(sb.from('promotions').select('id,nom').order('niveau'));
   window.__accPromo = {};
@@ -483,7 +403,8 @@ async function loadAccountsAdmin(){
   window.__accountsCache = rows || [];
 
   const panel = document.querySelector('.tab-panel[data-tab="accounts"]');
-  let h = '<h2 class="sec">Comptes en attente de validation</h2>';
+  let h = createStudentCardHtml(promos);
+  h += '<h2 class="sec">Comptes en attente de validation</h2>';
   h += fmtEmpty(pending, r => `<div class="list-item"><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)} · demande du ${new Date(r.created_at).toLocaleDateString()}</div></div>
       <div style="display:flex;gap:6px;">
         <button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;" onclick="validateAccount('${r.id}','valide')">Valider</button>
@@ -506,6 +427,64 @@ async function loadAccountsAdmin(){
     <div id="accList"></div>`;
   panel.innerHTML = h;
   renderAccountsList();
+}
+
+function createStudentCardHtml(promos){
+  const opts = (promos||[]).map(p => `<option value="${p.id}">${esc(p.nom)}</option>`).join('');
+  return `<h2 class="sec">Créer un compte étudiant</h2>
+  <div class="note">Réservé à l'administrateur central. Le compte est créé directement et actif. L'étudiant changera le mot de passe temporaire à sa première connexion.</div>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+    <input class="mini-input" id="cs_nom" placeholder="Nom *">
+    <input class="mini-input" id="cs_postnom" placeholder="Postnom">
+    <input class="mini-input" id="cs_prenom" placeholder="Prénom *">
+    <select class="mini-input" id="cs_sexe"><option value="">Sexe</option><option value="M">Masculin</option><option value="F">Féminin</option></select>
+    <input class="mini-input" id="cs_naissance" type="date" title="Date de naissance">
+    <input class="mini-input" id="cs_lieu" placeholder="Lieu de naissance">
+    <input class="mini-input" id="cs_tel" placeholder="Téléphone">
+    <input class="mini-input" id="cs_adresse" placeholder="Adresse">
+    <input class="mini-input" id="cs_email" placeholder="Email (facultatif)">
+    <input class="mini-input" id="cs_matricule" placeholder="Matricule (vide = automatique)">
+    <select class="mini-input" id="cs_promo"><option value="">Promotion (facultatif)</option>${opts}</select>
+    <input class="mini-input" id="cs_contact" placeholder="Personne à contacter en urgence">
+    <input class="mini-input" id="cs_contact_tel" placeholder="Téléphone de cette personne">
+    <button class="mini-btn" id="cs_btn" onclick="createStudentAccount()">Créer le compte</button>
+    <div id="cs_result"></div>
+  </div>`;
+}
+
+async function createStudentAccount(){
+  const v = id => document.getElementById(id).value.trim();
+  const out = document.getElementById('cs_result');
+  const btn = document.getElementById('cs_btn');
+  out.innerHTML = '';
+  if(!v('cs_nom') || !v('cs_prenom')){ out.innerHTML = '<div class="note">Nom et prénom sont obligatoires.</div>'; return; }
+  btn.disabled = true; btn.textContent = 'Création en cours…';
+  const cur = window.__curYear;
+  const { data, error } = await sb.rpc('creer_compte_etudiant', { p: {
+    nom: v('cs_nom'), postnom: v('cs_postnom'), prenom: v('cs_prenom'),
+    sexe: v('cs_sexe'), date_naissance: v('cs_naissance') || null, lieu_naissance: v('cs_lieu'),
+    telephone: v('cs_tel'), adresse: v('cs_adresse'), email: v('cs_email'), matricule: v('cs_matricule'),
+    promotion_id: v('cs_promo') || null, academic_year_id: cur ? cur.id : null,
+    contact_nom: v('cs_contact'), contact_tel: v('cs_contact_tel')
+  }});
+  btn.disabled = false; btn.textContent = 'Créer le compte';
+  if(error || !data || !data.ok){
+    out.innerHTML = `<div class="note">⚠️ ${esc((data && data.error) || (error && error.message) || 'Erreur inconnue')}</div>`;
+    return;
+  }
+  const creds = `Identifiant : ${data.email}\nMot de passe temporaire : ${data.password}`;
+  out.innerHTML = `<div class="note" style="border-color:var(--green);">
+    ✅ Compte créé pour <b>${esc(data.nom)}</b>.<br>
+    Matricule : <b>${esc(data.matricule)}</b><br>
+    Identifiant : <b>${esc(data.email)}</b><br>
+    Mot de passe temporaire : <b>${esc(data.password)}</b><br>
+    <span style="font-size:12px;">Note-le ou donne-le à l'étudiant maintenant : il ne sera plus affiché.</span></div>
+    <button class="mini-btn" id="cs_copy">Copier les identifiants</button>`;
+  document.getElementById('cs_copy').onclick = () => {
+    try { navigator.clipboard.writeText(creds); document.getElementById('cs_copy').textContent = 'Copié ✓'; } catch(e) {}
+  };
+  ['cs_nom','cs_postnom','cs_prenom','cs_sexe','cs_naissance','cs_lieu','cs_tel','cs_adresse','cs_email','cs_matricule','cs_promo','cs_contact','cs_contact_tel']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
 }
 
 function renderAccountsList(){
@@ -533,9 +512,8 @@ function renderAccountsList(){
   document.getElementById('accCount').textContent = list.length + ' compte(s)' + (list.length > MAX ? ' — affine ta recherche (60 premiers affichés)' : '');
   el.innerHTML = fmtEmpty(list.slice(0, MAX), r => {
     const pr = window.__accPromo[r.id];
-    return `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div style="display:flex;align-items:center;gap:10px;">${avatarHtml(r, 40)}<div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)}${pr && pr.nom ? ' · ' + esc(pr.nom) : ''}</div></div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`;
+    return `<div class="list-item clickable" onclick='openUserDetail(${JSON.stringify(r.id)})'><div><div class="t">${esc(r.nom)} ${esc(r.prenom)}</div><div class="s">${esc(r.code_id ? r.code_id + ' · ' : '')}${esc(roleLabels[r.role]||r.role)}${pr && pr.nom ? ' · ' + esc(pr.nom) : ''}</div></div><span class="badge ${badge(r)}">${label(r)}</span></div>`;
   });
-  fillAvatars(el);
 }
 
 function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -549,10 +527,10 @@ async function openUserDetail(id){
   document.getElementById('detailBody').innerHTML = 'Chargement…';
   document.getElementById('detailOverlay').classList.add('show');
 
-  let body = `<div style="text-align:center;margin:6px 0 12px;">${avatarHtml(u, 84)}</div><h2 class="sec">Profil</h2>
+  let body = `<h2 class="sec">Profil</h2>
     <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(u.code_id)}</div></div></div>
     <div class="list-item"><div><div class="t">Email</div><div class="s">${fld(u.email)}</div></div></div>
-    <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(u.telephone)}</div></div></div>${resetPwdHtml(u)}`;
+    <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(u.telephone)}</div></div></div>`;
 
   if(u.role === 'etudiant'){
     const { data: promos } = await pq(sb.from('promotions').select('id,nom').order('niveau'));
@@ -582,7 +560,12 @@ async function openUserDetail(id){
       byYear(sb.from('payments').select('*').eq('student_id', id).order('created_at',{ascending:false}).limit(10))
     ]);
 
-    body += await gradesGridHtml(id, stu);
+    body += `<h2 class="sec">Notes</h2>` + fmtEmpty(grades, g => `<div class="list-item"><div><div class="t">${esc(g.intitule||g.type_evaluation)}</div><div class="s">${esc(g.type_evaluation)}</div></div><span class="badge b-ok">${g.note}/${g.note_max}</span></div>`);
+    body += `<input class="mini-input" id="gIntitule" placeholder="Intitulé (ex: Interro biologie)">
+      <select class="mini-input" id="gType"><option value="interrogation">Interrogation</option><option value="tp">TP</option><option value="td">TD</option><option value="examen">Examen</option><option value="examen_final">Examen final</option></select>
+      <input class="mini-input" id="gNote" type="number" placeholder="Note obtenue" step="0.1">
+      <input class="mini-input" id="gMax" type="number" placeholder="Note maximale (ex: 20)" value="20" step="0.1">
+      <button class="mini-btn" onclick="addGrade('${id}')">Ajouter la note</button>`;
 
     body += `<h2 class="sec">Présences</h2>` + fmtEmpty(att, a => `<div class="list-item"><div><div class="t">${new Date(a.date_seance).toLocaleDateString()}</div></div><span class="badge ${a.statut==='present'?'b-ok':(a.statut==='retard'?'b-warn':'b-bad')}">${a.statut}</span></div>`);
     body += `<input class="mini-input" id="aDate" type="date">
@@ -673,10 +656,6 @@ async function enter(profile){
   document.getElementById('gate').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('hdrTitle').textContent = 'ISTM-MU';
-  refreshHeaderAvatar();
-  renderAssistant();
-  loadBanners(profile);
-  loadShare(profile);
   document.getElementById('hdrWho').textContent = `${roleLabels[profile.role]||profile.role} · ${profile.prenom} ${profile.nom}`;
   const tabs = tabsByRole[profile.role] || tabsByRole['etudiant'];
   const nav = document.getElementById('tabsNav');
@@ -798,9 +777,7 @@ async function loadSystemAdmin(){
     const b = actionLabels[l.action] || ['b-warn', l.action];
     return `<div class="list-item"><div><div class="t">${esc(l.description || l.action)}</div><div class="s">${esc(l.user_id ? (names[l.user_id] || 'Utilisateur') : 'Système')} · ${new Date(l.created_at).toLocaleString('fr-FR')}</div></div><span class="badge ${b[0]}">${b[1]}</span></div>`;
   });
-  panel.innerHTML = h + bannersAdminHtml() + shareAdminHtml();
-  loadBannersAdminList();
-  loadShareAdmin();
+  panel.innerHTML = h;
 }
 
 async function savePerms(id){
@@ -1250,19 +1227,10 @@ async function generatePalmares(){
   let gq = sb.from('grades').select('student_id,note,note_max').in('student_id', ids);
   if(academic_year_id) gq = gq.eq('academic_year_id', academic_year_id);
   const { data: grades } = await gq;
-  const cids = [...new Set((grades || []).map(g => g.course_id).filter(Boolean))];
-  let coursesById = {};
-  if(cids.length){ const { data: cs } = await sb.from('courses').select('id,credits').in('id', cids); (cs || []).forEach(c => { coursesById[c.id] = c; }); }
-  const perStudent = {};
-  (grades || []).forEach(g => { (perStudent[g.student_id] = perStudent[g.student_id] || []).push(g); });
-  const yearAvg = sid => {
-    const gs = perStudent[sid] || [];
-    const byC = lmdGradesByCourse(gs);
-    const clist = Object.keys(byC).map(id => coursesById[id] || { id, credits: null });
-    return lmdWeighted(clist, byC);
-  };
+  const acc = {};
+  (grades||[]).forEach(g => { if(!(Number(g.note_max) > 0)) return; const a = acc[g.student_id] || (acc[g.student_id] = {sum:0,n:0}); a.sum += Number(g.note)/Number(g.note_max)*20; a.n++; });
 
-  const list = studs.map(s => { const m = yearAvg(s.id); const moy = m == null ? 0 : Math.round(m*100)/100; return { s, moy, n: (perStudent[s.id] || []).length }; });
+  const list = studs.map(s => { const a = acc[s.id]; const moy = a ? Math.round(a.sum/a.n*100)/100 : 0; return { s, moy, n: a?a.n:0 }; });
   list.sort((x,y) => y.moy - x.moy);
   let rang = 0, prevMoy = null;
   const rows = list.map((x,i) => {
@@ -1505,17 +1473,9 @@ async function renderMessagesAdmin(){
     <button class="mini-btn" onclick="sendMessageAdmin()">Envoyer</button>
     <h2 class="sec">Reçus</h2>`;
   h += fmtEmpty(recu, m => `<div class="list-item" style="${m.is_read?'':'border-color:var(--blue2);border-width:2px;'}"><div><div class="t">${esc(names[m.sender_id]||'Utilisateur')}${m.recipient_id===null?" (à l'administration)":''}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div>
-      <div style="display:flex;flex-direction:column;gap:6px;"><button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="replyTo('${m.sender_id}')">Répondre</button>
-      <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteMessage('${m.id}')">Suppr.</button></div></div>`);
+      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="replyTo('${m.sender_id}')">Répondre</button></div>`);
   h += `<h2 class="sec">Envoyés</h2>`;
-  h += fmtEmpty(envoyes, m => `<div class="list-item"><div><div class="t">À : ${esc(names[m.recipient_id]||'—')}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div>
-    <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteMessage('${m.id}')">Suppr.</button></div>`);
-  if(currentProfile.role === 'admin_central'){
-    h += `<h2 class="sec">Nettoyage des messages</h2>
-      <div class="note">Supprime d'un coup les anciens échanges pour libérer de l'espace (les messages plus récents sont conservés).</div>
-      <select class="mini-input" id="purgeDays"><option value="90">Plus de 3 mois</option><option value="180" selected>Plus de 6 mois</option><option value="365">Plus de 12 mois</option></select>
-      <button style="background:var(--danger);color:#fff;border:none;border-radius:10px;padding:10px;width:100%;font-size:13px;" onclick="purgeOldMessages()">Supprimer les anciens messages</button>`;
-  }
+  h += fmtEmpty(envoyes, m => `<div class="list-item"><div><div class="t">À : ${esc(names[m.recipient_id]||'—')}</div><div class="s">${esc(m.contenu)}</div><div class="s" style="font-size:10.5px;">${msgTime(m.created_at)}</div></div></div>`);
   el.innerHTML = h;
 
   if(unread && recu && recu.length){
@@ -1537,66 +1497,6 @@ async function sendMessageAdmin(){
   if(!contenu){ return; }
   const { error } = await sb.from('messages').insert({ sender_id: currentProfile.id, recipient_id, contenu });
   if(error){ alert("Erreur : " + error.message); return; }
-  renderMessagesAdmin();
-}
-
-// ================= RÉCUPÉRATION DE MOT DE PASSE (par l'administrateur central) =================
-function resetPwdHtml(u){
-  if(currentProfile.role !== 'admin_central' || u.id === currentProfile.id) return '';
-  return `<div id="pwResetBox"><button class="mini-btn" style="background:#a35a00;" onclick="resetMemberPassword('${u.id}')">🔑 Réinitialiser le mot de passe</button></div>`;
-}
-
-function genTempPassword(){
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-  const a = new Uint32Array(10); crypto.getRandomValues(a);
-  return Array.from(a, x => A[x % A.length]).join('');
-}
-
-async function resetMemberPassword(id){
-  const u = (window.__accountsCache || []).find(x => x.id === id);
-  if(!u) return;
-  if(!confirm(`Réinitialiser le mot de passe de ${u.nom} ${u.prenom} ?\n\nUn mot de passe temporaire sera créé. Le membre devra en choisir un nouveau à sa prochaine connexion, et ses connexions actuelles seront fermées.`)) return;
-  const pw = genTempPassword();
-  const { error } = await sb.rpc('admin_reset_password', { p_user: id, p_password: pw });
-  if(error){ alert('Erreur : ' + error.message); return; }
-  const tel = String(u.telephone || '').replace(/\D/g, '');
-  const wa = tel ? (tel.startsWith('0') ? '243' + tel.slice(1) : tel) : '';
-  const msg = `Bonjour ${u.prenom}, ton mot de passe ISTM-MU a été réinitialisé.\nE-mail : ${u.email || ''}\nMot de passe temporaire : ${pw}\nConnecte-toi sur https://jacquham.github.io/istm-mu/ puis choisis un nouveau mot de passe.`;
-  window.__lastResetMsg = msg;
-  const box = document.getElementById('pwResetBox');
-  if(box) box.innerHTML = `<div class="note" style="border-style:solid;">
-      <div>Mot de passe temporaire de <b>${esc(u.nom)} ${esc(u.prenom)}</b> :</div>
-      <div style="font-size:22px;font-weight:700;letter-spacing:1px;margin:8px 0;user-select:all;">${esc(pw)}</div>
-      <div class="s">Communique-le au membre (il ne sera plus affiché). Il devra le changer à sa prochaine connexion.</div>
-      <button class="mini-btn" style="margin-top:8px;" onclick="copyResetMsg()">Copier le message</button>
-      ${wa ? `<button class="mini-btn" style="background:#1e7a3c;" onclick="window.open('https://wa.me/${wa}?text=' + encodeURIComponent(window.__lastResetMsg), '_blank')">Envoyer par WhatsApp</button>` : ''}
-    </div>`;
-}
-
-async function copyResetMsg(){
-  try { await navigator.clipboard.writeText(window.__lastResetMsg || ''); alert('Message copié.'); }
-  catch(e) { alert('Copie impossible : note le mot de passe affiché.'); }
-}
-
-// ================= SUPPRESSION DE MESSAGES =================
-async function deleteMessage(id){
-  if(!confirm('Supprimer ce message ?')) return;
-  const { data, error } = await sb.from('messages').delete().eq('id', id).select();
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(!data || !data.length){ alert('Suppression refusée (script SQL mdp_et_messages.sql pas encore exécuté ?).'); return; }
-  renderMessagesAdmin();
-}
-
-async function purgeOldMessages(){
-  const days = parseInt(document.getElementById('purgeDays').value);
-  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
-  const { count, error: e1 } = await sb.from('messages').select('*', { count:'exact', head:true }).lt('created_at', cutoff);
-  if(e1){ alert('Erreur : ' + e1.message); return; }
-  if(!count){ alert('Aucun message de plus de ' + days + ' jours.'); return; }
-  if(!confirm(count + ' message(s) de plus de ' + days + ' jours seront supprimés définitivement. Continuer ?')) return;
-  const { data, error } = await sb.rpc('purge_old_messages', { p_days: days });
-  if(error){ alert('Erreur : ' + error.message); return; }
-  alert(data.messages + ' message(s) supprimé(s).');
   renderMessagesAdmin();
 }
 
@@ -1695,7 +1595,7 @@ async function loadPlanning(profile){
       const { data: st } = await sb.from('students').select('promotion_id').eq('id', profile.id).maybeSingle();
       pid = st ? st.promotion_id : null;
     }
-    if(pid){ const { data: pn } = await sb.from('promotions').select('nom').eq('id', pid).maybeSingle(); promos = [{ id: pid, nom: (pn && pn.nom) || 'Ma promotion' }]; }
+    if(pid) promos = [{ id: pid, nom: 'Ma promotion' }];
   } else { el.innerHTML = ''; return; }
   window.__planPromos = promos;
   if(!promos.length){ el.innerHTML = '<h2 class="sec">Planning des cours</h2><div class="note">Aucune promotion disponible pour cette année.</div>'; return; }
@@ -1710,22 +1610,13 @@ async function renderPlanning(){
   const isAdmin = role === 'admin_central' || role === 'admin_academique';
   const isCurYear = window.__curYear && vy() === window.__curYear.id;
   const promos = window.__planPromos || [];
-  if(isAdmin) await ensureTeachersCache();
   const { data: rows, error } = await sb.rpc('planning_cours', { p_promotion: window.__planPromo, p_year: vy() });
   let h = '<h2 class="sec">Planning des cours</h2>';
   if(promos.length > 1){
     h += `<select class="mini-input" onchange="window.__planPromo=this.value;renderPlanning()">${promos.map(p => `<option value="${p.id}" ${p.id === window.__planPromo ? 'selected' : ''}>${esc(p.nom)}</option>`).join('')}</select>`;
   }
-  if(promos.length === 1) h += `<div class="s" style="margin-bottom:4px;">${esc(promos[0].nom)}</div>`;
   if(error){ el.innerHTML = h + `<div class="note">Impossible de charger le planning : ${esc(error.message)}</div>`; return; }
   const list = rows || [];
-  const curPromo = promos.find(p => p.id === window.__planPromo) || promos[0] || { nom: '' };
-  window.__planData = { list, promoNom: curPromo.nom, year: yearLabel(vy()) };
-  const sumCr = arr => arr.reduce((t, c) => t + (Number(c.credits) || 0), 0);
-  if(list.length){
-    h += `<div class="note" style="margin-top:8px;"><b>${list.length} cours · ${sumCr(list)} crédits</b> · ${list.filter(c => c.statut === 'valide').length} terminé(s)</div>
-      <button class="mini-btn" onclick="exportPlanningPdf()">Télécharger la planification (PDF)</button>`;
-  }
 
   if(isAdmin){
     const { data: pend } = await byYear(sb.from('course_completions').select('id,demande_role,created_at,courses(code,intitule),users:demande_par(nom,prenom)').eq('statut','en_attente').order('created_at'));
@@ -1745,7 +1636,7 @@ async function renderPlanning(){
   const sems = Object.keys(bySem).sort();
   if(!sems.length) h += '<div class="note">Aucun cours dans cette promotion.</div>';
   sems.forEach(k => {
-    h += `<div class="s" style="margin:10px 0 4px;font-weight:600;">${k === '—' ? 'Semestre non défini' : 'Semestre ' + esc(k)} — ${bySem[k].length} cours · ${sumCr(bySem[k])} crédits</div>`;
+    h += `<div class="s" style="margin:10px 0 4px;font-weight:600;">Semestre ${esc(k)}</div>`;
     h += bySem[k].map(c => {
       const lb = planLabels[c.statut] || planLabels.en_cours;
       let act = '';
@@ -1753,14 +1644,9 @@ async function renderPlanning(){
         const mine = role === 'enseignant' ? c.enseignant_id === profile.id : true;
         if(mine) act = `<button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="declareCourseDone('${c.course_id}')">${isAdmin ? 'Marquer terminé' : (role === 'enseignant' ? 'Déclarer terminé' : 'Signaler terminé')}</button>`;
       }
-      if(isCurYear && isAdmin && c.statut === 'valide'){
-        act = `<button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="reopenCourse('${c.course_id}')">Rouvrir</button>`;
-      }
-      const editBtn = isAdmin ? `<button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;background:#33465a;" onclick="openPlanEdit('${c.course_id}')">Modifier</button>` : '';
-      return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
-        <div class="s">${esc(c.enseignant_nom || 'Enseignant non assigné')}${(isAdmin && !c.enseignant_id && c.enseignant_nom) ? ' <i>(compte à lier)</i>' : ''} · ${esc(c.credits ?? '—')} crédits · ${esc(c.volume_horaire ?? '—')} h</div>
-        <span class="badge ${lb[1]}">${lb[0]}</span></div><div style="display:flex;flex-direction:column;gap:6px;">${act}${editBtn}</div>
-        <div id="pcBox${c.course_id}" style="width:100%;"></div></div>`;
+      return `<div class="list-item"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
+        <div class="s">${esc(c.enseignant_nom || 'Enseignant non assigné')} · ${esc(c.credits ?? '—')} crédits · ${esc(c.volume_horaire ?? '—')} h</div>
+        <span class="badge ${lb[1]}">${lb[0]}</span></div><div>${act}</div></div>`;
     }).join('');
   });
   el.innerHTML = h;
@@ -1774,73 +1660,6 @@ async function declareCourseDone(cid){
   const { error } = await sb.from('course_completions').insert(row);
   if(error){ alert(error.code === '23505' ? 'Une demande est déjà en attente pour ce cours.' : 'Erreur : ' + error.message); return; }
   renderPlanning();
-}
-
-async function ensureTeachersCache(){
-  if(window.__teachersCache) return;
-  const { data } = await sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom,code_id,is_active,compte_status)');
-  window.__teachersCache = (data || []).map(t => ({
-    id: t.id,
-    code: (t.users && t.users.code_id) || t.matricule_enseignant || 'ID ?',
-    nom: (t.users && t.users.nom) || '',
-    prenom: (t.users && t.users.prenom) || '',
-    actif: !!t.users && t.users.compte_status === 'valide' && t.users.is_active !== false
-  }));
-}
-
-function openPlanEdit(cid){
-  const box = document.getElementById('pcBox' + cid);
-  if(!box) return;
-  if(box.innerHTML){ box.innerHTML = ''; return; }
-  const c = ((window.__planData || {}).list || []).find(x => x.course_id === cid) || {};
-  const sem = c.semestre == null ? '' : String(c.semestre);
-  box.innerHTML = `<select class="mini-input" id="pcSem${cid}"><option value="">— Semestre non défini —</option>
-      <option value="1" ${sem === '1' ? 'selected' : ''}>Semestre 1</option><option value="2" ${sem === '2' ? 'selected' : ''}>Semestre 2</option></select>
-    ${teacherPicker('pcT' + cid, c.enseignant_id)}
-    <button class="mini-btn" onclick="savePlanEdit('${cid}')">Enregistrer</button>`;
-}
-
-async function savePlanEdit(cid){
-  const c = ((window.__planData || {}).list || []).find(x => x.course_id === cid) || {};
-  const sm = document.getElementById('pcSem' + cid).value;
-  const tid = document.getElementById('pcT' + cid).value || null;
-  const teacherChanged = (c.enseignant_id || null) !== tid;
-  if(teacherChanged && !tid && !confirm("Retirer l'enseignant de ce cours ?")) return;
-  const { data, error } = await sb.from('courses').update({ semestre: sm === '' ? null : parseInt(sm), enseignant_responsable_id: tid }).eq('id', cid).select();
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(!data || !data.length){ alert('Modification refusée : droits insuffisants (script SQL cours_gestion.sql pas encore exécuté ?).'); return; }
-  if(teacherChanged){
-    const { error: e2 } = await sb.from('schedules').update({ teacher_id: tid }).eq('course_id', cid);
-    if(e2) alert("Enseignant changé, mais les horaires n'ont pas pu être mis à jour : " + e2.message);
-  }
-  renderPlanning();
-}
-
-async function reopenCourse(cid){
-  if(!confirm('Rouvrir ce cours (annuler sa validation comme terminé) ?')) return;
-  const { data, error } = await sb.from('course_completions').delete().eq('course_id', cid).eq('academic_year_id', vy()).eq('statut', 'valide').select();
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(!data || !data.length){ alert('Rien à rouvrir (droits insuffisants ou déjà rouvert).'); return; }
-  renderPlanning();
-}
-
-function exportPlanningPdf(){
-  const d = window.__planData;
-  if(!d || !d.list || !d.list.length){ alert('Aucun cours à exporter.'); return; }
-  if(!(window.jspdf && window.jspdf.jsPDF)){ alert("Le module PDF n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
-  const stLabel = { en_cours: 'En cours', en_attente: 'Validation demandée', valide: 'Terminé' };
-  const sorted = d.list.slice().sort((a, b) => String(a.semestre || '9').localeCompare(String(b.semestre || '9')) || String(a.code).localeCompare(String(b.code)));
-  const sem = {}; sorted.forEach(c => { const k = c.semestre || '-'; sem[k] = sem[k] || { n: 0, cr: 0 }; sem[k].n++; sem[k].cr += Number(c.credits) || 0; });
-  const summary = Object.keys(sem).sort().map(k => `${k === '-' ? 'Semestre non défini' : 'Semestre ' + k} : ${sem[k].n} cours, ${sem[k].cr} crédits`);
-  summary.push(`Total : ${sorted.length} cours, ${sorted.reduce((t, c) => t + (Number(c.credits) || 0), 0)} crédits`);
-  exportPdf({
-    title: 'Planification annuelle des cours - ' + d.promoNom,
-    filters: 'Année académique : ' + d.year,
-    summary,
-    columns: ['Semestre', 'Code', 'Intitulé du cours', 'Crédits', 'Enseignant', 'Volume horaire (h)', 'Statut'],
-    numCols: [3, 5],
-    rows: sorted.map(c => [c.semestre || 'Non défini', c.code, c.intitule, c.credits == null ? '' : c.credits, c.enseignant_nom || 'Non assigné', c.volume_horaire == null ? '' : c.volume_horaire, stLabel[c.statut] || c.statut])
-  }, 'Planification_' + String(d.promoNom).replace(/[^\w]+/g, '_') + '_' + d.year);
 }
 
 async function decideCompletion(id, statut){
@@ -2082,8 +1901,7 @@ async function runBackup(){
 function docsSectionHtml(sid){
   return `<h2 class="sec">Documents de l'étudiant (PDF)</h2>
     <div class="note">Générés pour l'année choisie dans le sélecteur en haut de l'écran.</div>
-    <button class="mini-btn" onclick="downloadBulletin('${sid}')">Bulletin de notes (crédits, moyennes)</button>
-    <button class="mini-btn" onclick="downloadStudentDoc('releve','${sid}')">Relevé de notes (détail des évaluations)</button>
+    <button class="mini-btn" onclick="downloadStudentDoc('releve','${sid}')">Relevé de notes</button>
     <button class="mini-btn" onclick="downloadStudentDoc('inscription','${sid}')">Attestation d'inscription</button>
     <button class="mini-btn" onclick="downloadStudentDoc('reussite','${sid}')">Attestation de réussite</button>`;
 }
@@ -2190,685 +2008,6 @@ async function downloadStudentDoc(kind, sid){
   doc.text("En foi de quoi, la présente attestation lui est délivrée pour servir et valoir ce que de droit.", 20, 65 + lines.length * 8 + 10, { maxWidth: pw - 40, lineHeightFactor: 1.6 });
   docFooterPdf(doc, 65 + lines.length * 8 + 30);
   doc.save(`${kind === 'inscription' ? 'Attestation_inscription' : 'Attestation_reussite'}_${ident}_${year}.pdf`);
-}
-
-// ================= PHOTOS DE PROFIL =================
-function initials(u){ return ((String(u.prenom || '')[0] || '') + (String(u.nom || '')[0] || '')).toUpperCase() || '?'; }
-
-function avatarHtml(u, size){
-  const sz = size || 36;
-  return `<span class="avatar" data-av="${u.photo_path ? esc(u.photo_path) : ''}" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*0.38)}px;">${esc(initials(u))}</span>`;
-}
-
-window.__avCache = window.__avCache || {};
-async function fillAvatars(root){
-  if(!root) return;
-  const els = [...root.querySelectorAll('[data-av]')].filter(e => e.getAttribute('data-av'));
-  if(!els.length) return;
-  const need = [...new Set(els.map(e => e.getAttribute('data-av')).filter(p => !window.__avCache[p]))];
-  if(need.length){
-    const { data } = await sb.storage.from('avatars').createSignedUrls(need, 3600);
-    (data || []).forEach(d => { if(d && d.signedUrl) window.__avCache[d.path] = d.signedUrl; });
-  }
-  els.forEach(e => {
-    const u = window.__avCache[e.getAttribute('data-av')];
-    if(u) e.innerHTML = `<img src="${esc(u)}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
-  });
-}
-
-// réduit la photo avant l'envoi (économise l'espace et les données mobiles)
-function compressImage(file, maxSide, quality, square){
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      let sw = img.naturalWidth, sh = img.naturalHeight, sx = 0, sy = 0, dw, dh;
-      if(square){ const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = m; sh = m; dw = dh = maxSide; }
-      else { const k = Math.min(1, maxSide / Math.max(sw, sh)); dw = Math.round(sw * k); dh = Math.round(sh * k); }
-      const c = document.createElement('canvas'); c.width = dw; c.height = dh;
-      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, dw, dh);
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
-      URL.revokeObjectURL(url);
-      c.toBlob(b => b ? resolve(b) : reject(new Error('Compression impossible')), 'image/jpeg', quality);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image illisible (utilise une photo JPG ou PNG)")); };
-    img.src = url;
-  });
-}
-
-function refreshHeaderAvatar(){
-  const h = document.getElementById('hdrAvatar');
-  if(h && currentProfile){ h.innerHTML = avatarHtml(currentProfile, 34); fillAvatars(h); }
-}
-
-function openMyProfile(){
-  const p = currentProfile;
-  if(!p) return;
-  document.getElementById('detailName').textContent = `${p.prenom} ${p.nom}`;
-  document.getElementById('detailRole').textContent = roleLabels[p.role] || p.role;
-  document.getElementById('detailBody').innerHTML = `<div style="text-align:center;margin:8px 0 14px;">${avatarHtml(p, 96)}</div>
-    <input type="file" id="myPhotoFile" accept="image/*" style="display:none" onchange="uploadMyPhoto(this)">
-    <button class="mini-btn" onclick="document.getElementById('myPhotoFile').click()">📷 Choisir / changer ma photo</button>
-    ${p.photo_path ? `<button style="background:var(--danger);color:#fff;border:none;border-radius:9px;padding:10px;width:100%;margin-bottom:8px;font-size:13px;" onclick="removeMyPhoto()">Supprimer ma photo</button>` : ''}
-    <div id="myPhotoMsg" class="s" style="margin-bottom:8px;"></div>
-    <h2 class="sec">Mes informations</h2>
-    <div class="list-item"><div><div class="t">ID</div><div class="s">${fld(p.code_id)}</div></div></div>
-    <div class="list-item"><div><div class="t">Email</div><div class="s">${fld(p.email)}</div></div></div>
-    <div class="list-item"><div><div class="t">Téléphone</div><div class="s">${fld(p.telephone)}</div></div></div>`;
-  document.getElementById('detailOverlay').classList.add('show');
-}
-
-async function uploadMyPhoto(input){
-  const file = input.files && input.files[0];
-  const msg = document.getElementById('myPhotoMsg');
-  if(!file) return;
-  msg.textContent = 'Envoi en cours…';
-  try {
-    const blob = await compressImage(file, 256, 0.85, true);
-    const path = `${currentProfile.id}/avatar_${Date.now()}.jpg`;
-    const { error: upErr } = await sb.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-    if(upErr) throw upErr;
-    const { error } = await sb.rpc('set_my_photo', { p_path: path });
-    if(error){ await sb.storage.from('avatars').remove([path]); throw error; }
-    const old = currentProfile.photo_path;
-    if(old) await sb.storage.from('avatars').remove([old]);
-    currentProfile.photo_path = path;
-    refreshHeaderAvatar();
-    openMyProfile();
-    document.getElementById('myPhotoMsg').textContent = 'Photo enregistrée ✅';
-  } catch(e) { msg.textContent = 'Erreur : ' + (e.message || e); }
-}
-
-async function removeMyPhoto(){
-  if(!confirm('Supprimer ta photo de profil ?')) return;
-  const old = currentProfile.photo_path;
-  const { error } = await sb.rpc('set_my_photo', { p_path: null });
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(old) await sb.storage.from('avatars').remove([old]);
-  currentProfile.photo_path = null;
-  refreshHeaderAvatar();
-  openMyProfile();
-}
-
-// remplit automatiquement les photos dès qu'un contenu s'affiche dans la fenêtre de détail
-document.addEventListener('DOMContentLoaded', () => {
-  const d = document.getElementById('detailBody');
-  if(d) new MutationObserver(() => fillAvatars(d)).observe(d, { childList: true });
-});
-
-// ================= BANNIÈRES DE SENSIBILISATION =================
-function bannerImgUrl(path){ return path ? sb.storage.from('bannieres').getPublicUrl(path).data.publicUrl : ''; }
-
-async function loadBanners(profile){
-  const el = document.getElementById('bannerBar');
-  if(!el) return;
-  if(window.__bannerTimer){ clearInterval(window.__bannerTimer); window.__bannerTimer = null; }
-  const { data, error } = await sb.from('banners').select('*').eq('actif', true).order('ordre').order('created_at', { ascending:false });
-  if(error || !data){ el.innerHTML = ''; return; }
-  const isAdm = profile.role === 'admin_central' || profile.role === 'admin_academique';
-  const aud = profile.role === 'etudiant' ? 'etudiants' : 'enseignants';
-  const today = localToday();
-  window.__banners = data.filter(b => (!b.date_fin || b.date_fin >= today) && (isAdm || b.audience === 'tous' || b.audience === aud));
-  window.__bannerIdx = 0;
-  renderBanner();
-  if(window.__banners.length > 1) window.__bannerTimer = setInterval(() => { window.__bannerIdx = (window.__bannerIdx + 1) % window.__banners.length; renderBanner(); }, 7000);
-}
-
-function renderBanner(){
-  const el = document.getElementById('bannerBar');
-  const list = window.__banners || [];
-  if(!el) return;
-  if(!list.length){ el.innerHTML = ''; return; }
-  const b = list[window.__bannerIdx % list.length];
-  const img = bannerImgUrl(b.image_path);
-  const link = b.lien && /^https?:\/\//i.test(b.lien) ? b.lien : '';
-  el.innerHTML = `<div class="banner">
-      <div class="btag">📢 Sensibilisation</div>
-      ${img ? `<img src="${esc(img)}" alt="">` : ''}
-      <div class="bbody"><div class="bt">${esc(b.titre)}</div>
-      ${b.texte ? `<div class="bx">${esc(b.texte)}</div>` : ''}
-      ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">En savoir plus</a>` : ''}</div>
-      ${list.length > 1 ? `<div class="bdots">${list.map((x, i) => `<span class="${i === window.__bannerIdx % list.length ? 'on' : ''}" onclick="window.__bannerIdx=${i};renderBanner()"></span>`).join('')}</div>` : ''}
-    </div>`;
-}
-
-function bannersAdminHtml(){
-  return `<h2 class="sec">Bannières de sensibilisation</h2>
-    <div class="note">Une image et un message court s'affichent en bas de l'application pour tous les utilisateurs concernés.</div>
-    <input class="mini-input" id="bnTitre" placeholder="Titre (ex : Lavez-vous les mains)">
-    <input class="mini-input" id="bnTexte" placeholder="Message de sensibilisation (court)">
-    <input type="file" class="mini-input" id="bnImg" accept="image/*">
-    <select class="mini-input" id="bnAud"><option value="tous">Pour tout le monde</option><option value="etudiants">Pour les étudiants</option><option value="enseignants">Pour les enseignants</option></select>
-    <input class="mini-input" id="bnLien" placeholder="Lien (facultatif, https://…)">
-    <label style="font-size:11.5px;color:var(--muted);">Afficher jusqu'au (facultatif)</label>
-    <input class="mini-input" id="bnFin" type="date">
-    <button class="mini-btn" onclick="publishBanner()">Publier la bannière</button>
-    <div id="bnList"><div class="note">Chargement…</div></div>`;
-}
-
-async function loadBannersAdminList(){
-  const el = document.getElementById('bnList');
-  if(!el) return;
-  const { data, error } = await sb.from('banners').select('*').order('created_at', { ascending:false });
-  if(error){ el.innerHTML = `<div class="note">Impossible de charger les bannières : ${esc(error.message)}</div>`; return; }
-  const audL = { tous:'Tout le monde', etudiants:'Étudiants', enseignants:'Enseignants' };
-  el.innerHTML = fmtEmpty(data, b => `<div class="list-item"><div><div class="t">${esc(b.titre)}</div>
-      <div class="s">${esc(b.texte || '')}</div>
-      <div class="s" style="font-size:10.5px;">${esc(audL[b.audience] || b.audience)}${b.date_fin ? ' · jusqu\'au ' + new Date(b.date_fin).toLocaleDateString('fr-FR') : ''}</div></div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;background:${b.actif ? '#1e7a3c' : '#6b7785'};" onclick="toggleBanner('${b.id}', ${!b.actif})">${b.actif ? 'Actif' : 'Inactif'}</button>
-        <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteBanner('${b.id}')">Suppr.</button>
-      </div></div>`);
-}
-
-async function publishBanner(){
-  const titre = document.getElementById('bnTitre').value.trim();
-  const texte = document.getElementById('bnTexte').value.trim();
-  const audience = document.getElementById('bnAud').value;
-  const lien = document.getElementById('bnLien').value.trim();
-  const date_fin = document.getElementById('bnFin').value || null;
-  const file = document.getElementById('bnImg').files[0];
-  if(!titre){ alert('Merci de saisir un titre.'); return; }
-  if(lien && !/^https?:\/\//i.test(lien)){ alert('Le lien doit commencer par https://'); return; }
-  let image_path = null;
-  if(file){
-    try {
-      const blob = await compressImage(file, 1000, 0.8, false);
-      image_path = `${Date.now()}.jpg`;
-      const { error: upErr } = await sb.storage.from('bannieres').upload(image_path, blob, { contentType: 'image/jpeg', upsert: false });
-      if(upErr){ alert("Erreur d'envoi de l'image : " + upErr.message); return; }
-    } catch(e) { alert('Erreur : ' + (e.message || e)); return; }
-  }
-  const { error } = await sb.from('banners').insert({ titre, texte: texte || null, image_path, lien: lien || null, audience, date_fin, created_by: currentProfile.id });
-  if(error){
-    if(image_path) await sb.storage.from('bannieres').remove([image_path]);
-    alert('Erreur : ' + error.message); return;
-  }
-  ['bnTitre','bnTexte','bnLien','bnFin','bnImg'].forEach(i => { document.getElementById(i).value = ''; });
-  loadBannersAdminList();
-  loadBanners(currentProfile);
-}
-
-async function toggleBanner(id, actif){
-  const { data, error } = await sb.from('banners').update({ actif }).eq('id', id).select();
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(!data || !data.length){ alert('Modification refusée.'); return; }
-  loadBannersAdminList();
-  loadBanners(currentProfile);
-}
-
-async function deleteBanner(id){
-  if(!confirm('Supprimer cette bannière ?')) return;
-  const { data: b } = await sb.from('banners').select('image_path').eq('id', id).maybeSingle();
-  const { data, error } = await sb.from('banners').delete().eq('id', id).select();
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(!data || !data.length){ alert('Suppression refusée.'); return; }
-  if(b && b.image_path) await sb.storage.from('bannieres').remove([b.image_path]);
-  loadBannersAdminList();
-  loadBanners(currentProfile);
-}
-
-// ================= HABILLAGE DU TABLEAU DE BORD (carte d'accueil + icônes) =================
-const EMBLEM_SRC = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQDAwMEBAQFBgoGBgUFBgwICQcKDgwPDg4MDQ0PERYTDxAVEQ0NExoTFRcYGRkZDxIbHRsYHRYYGRj/2wBDAQQEBAYFBgsGBgsYEA0QGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBj/wAARCAEAAQADASIAAhEBAxEB/8QAHQAAAgIDAQEBAAAAAAAAAAAAAAgBBwUGCQQDAv/EAGsQAAEDAwIDBAQGDAULDgsJAAECAwQFBhEABwgSIRMxQVEUImFxCRUyQoGRFhcjUlhicoKVobHTOJKzwdIYJDM0U3N1dqK00SY1NzlDRlZjZXSDk5TUGScoNkRVo7LCw8VFR1dmd4SFpMT/xAAcAQABBQEBAQAAAAAAAAAAAAAAAgMEBQYBBwj/xABCEQABAwIEAgcGAwcDAgcAAAABAAIDBBEFEiExQVEGEyJhcYGRFDKhscHRI1LwBxUzNEJi4XKS8aKyFjU2Q1Nzwv/aAAwDAQACEQMRAD8AfzRqNToQjRqNToQjRo0aEI0eGjRoQjRo1UG53EztHtUp2HW7jTUKu3kfFNJAkyAfJeDyt/nqGlsY55ytFyuEgC5Vv6/DjrbTSnXXEobSMqWo4AHtOueV28c+6l51hNB2qtJikLkq7OPhk1Ke6fxUgcgPsCVY89e+g8L3EbvK83Vt5r/qNGp7mFeiTpSpUjB64EZCg039JyPvdSzQlgvM4N+J9E11wd7gum6uTf3Zi0lqbru5duMOp+Uy1LTIcH5jfMf1a0yHxdbWVyeqHZlOvO8HgcctBoD7+T71BIH041g6NwzcM+zFIbrF2x4U95vChNueQlwLUPvGBhBPsCCdE3ijttlwW3s5t9VLleR6rSIcUxo6faEISVEe9KdQaiqpINCST+uAuVc4dgeI4iC6niJaNzs0eLjYD1VrUjcC6q4yh6LtDdVOaUfl1qRCiEfmB5a/8nW7xHpS4QenxkRHOpUgO9oEj8rA0tHJxgX/AOt2lFsKA4fkjlS6E/8AtHAf4uoHCdclwqL9/wC8teqq1nK2mQtSfoU4sj/J1DNY9/8ACiPnp8/srYdH6SD+drmNPJgMh/6Rb4phJ162dS1qTU7socMp6ESJ7TZH1q1hXN4tqGl8q9x7XB/wk0f59VdB4MtpYyE+lSrimrHeXJaEBX0JbH7dZUcI+yoTj4lqXv8AjF3/AE6Tnqzsxo8z9l0UvR5mjqiV3gxo+blYsXdPbOcsJi7g2w6o9wFTZyfrVrY4VUplTa7SnVCJMR99HeS4P8knVDTeDbaOUlXoztwwlEdOympWB/HQdadVOChMV30qz9xJkN9PyEzI3X/rGlJI/i6SZqtu8YPgfunW4d0fm0ZWPYf7o7/9pTa+zRpLnrO4u9sAXaJX5lxQWj8mNKE9PL5dk+Of6EjXttzjJuGi1AUnc2x1JebPK67BSqM+j2qYd6E/nJ0kYmxpyzNLT3jT1TruhFVMwyYdKycD8ru15g2+acTRrRLF3j263FbSi2bjjuTCMmnyfuMlP/Rq6q96cj263vU9kjXjMw3CydTSTUshiqGFrhwIsfijRo0aWo6NGjRoQjRo0aEI0aNGhCjU6NGhCjRqdGhCNRqdGhCNVtuzvpt5s1RRKu2rAznUFUWkxMOSpPtSjPqp/HUQn2+GqJ4i+M2n2c7Lsvap6NU6+glqVWDhyNBV3FLY7nXR/ESe/mOQEPjx703R3FTHYTU7muarPd6lF599fiSo9yQO8nCUgeAGrSlw4yDPLo1RpagNOVupVx7wcYO5u5ipFLo8pVo28vKfQqc6Q+8n/jnxhRznqlPKn36ymyXBpfW5SGLgvJb9pW25hxJea/r2Wk9cttK+QD9+v3hJ0ynD3weW3tu1Euu/m4lfuwAONtEc8SnK/wCLB/sjg/uihgH5IHebjvXcz4lrKbStCkOXPd7yeZNNjqw3ESe52U53NI9hOT0x350VWJxUzckAsOfPw5qRQ4ZPXSZALnfkAOJJOgA4k2C8FsWHs7w9WS7LpsKm0CKhITIqktXPJknyU6crWTjohPTyTrR5W7G6W6r66fsnbCqZRyooXdVaRyI8iWkEEfqWfMJ1stE2Sdrteau7eSri662nCmKckFNNg/ittfP96u/xB79XA0y0wwhlhtDbSEhKEISEpSB3AAdw1QP6+pN3nKP+o+J4eWvetMybDcLFomieUcTfq2+DdC/xdZv9p3VC2/wuW+9VRcG6FwVS+K0vClmW8pDCT34Cc8yh7CoD8XV20ehUW3qain0GkwqZET3MQ2UtJ+pIGshqj+K67a1aXD28uhS3YkipTmqeuQ0rlWhtSVrXykdxIRy58lHQY4qSNz2t29fVNtq8Qx+ripZpScxAA2aPBosBbuCtWReNoxJK48q6aKw8g4U25OaSpJ8iCrI18/s5sr/hfQP0gz/S1yZIz1OCfMjRy+wfVqn/AH678nxXow/ZTHxqT/tH3XWb7ObK/wCGFB/SDP8AS176bXKLWef4orECf2fy/RZCHeX38pONciSPYPq1n7Ju2tWRfdOuSgS3IsuM8lXqKwHUZHM2oeKVDIIOlsxy5GZmnimKj9lgbG4xVF3AaXbp811n0a/KFc7SVjpzAHHv1+taBePo1r112LaF8U4wbrt6DVWsYSp9v7oj8hYwpP0Ea2HRrjmhws4XCcimkheJInFrhsQbH1Shbg8GzjDqqvtZXFtutntEUyouYII6/cnx3HyCh+drWLS4ht2NoK+m1N06RPqkVrCS3PHJMaT3czbp6Op95IPgoaeTWvXhY9q35QF0a66NHqMY55C4MLaJ+c2sesg+0HVZJhuQ9ZSuyu+BW4o+mntEYpMciE8XPZ7e8HS/wJ5rzWLuNaG49A+NrUqzctCcB5hXqPR1feuIPVPv7j4E62rSSXzsLuBstcP2dbWVafNp8YlZUwMyoqO8h1A6Ot+ZA96R36urZLiIo25TDNBrwZpd0BOAyDhmbgdVNE9yvEoPXyyM47T15z9TUDK/4HwTeL9EmCmOJ4NJ11Px/Oz/AFDl328raq8dGo1OrNYdGo1OjQhGjRo0IRo1Gp8dCEaNGjuGhCgkAZPdpB+Kfi1eqr07bXauplunJ5mKpXYy8KknuUywodzfeFODqrqE9Mk5zjG4k3Yapm0Fh1AofI7Ku1GOvBQCOsRCh3Ej+yEdw9XvKsJJbtu1q7brgW1btPdnVOe8liNGaHVaj+oADJJPQAEnoNXuHYeMvXzbcPuVAqak36tm69NkWNcu4t8QbRtGmqm1KWrCUD1UNIHynHFdyEJHUn6BkkA9T9heH21dj7R7KGlFRuOWgCo1lxGFunv7NsfMaB7k9571ZPccPuw1B2PsARGg1NuOclK6rVAnq4rvDTeeoaT1wPE5Uep6WpUobs+N6IJK2GV9Hi0SlxSfvUqHyc+JHXHdg9RExCvMxyM935qRS04ZYuOq1Ks1evXVPftyyJQgx2llqo3EUBaY5HRTMZJ6OPeBUfUb8eZXqjOWrZ9Asyjqp9Ch9kHF9rIkOqLj8p097jzh9ZayfE/Rgay0SJFgQmocKO3HjspCG2mkhKUJHcAB3DX31UNj1zO1Py8FazVhMfs8XZj4ji483c+4bDhqSSaNGjTqgo0uXGl14f6cP+XGf5F7TG6XPjQ/2AKd/htn+Re1DxD+Wf4LSdEBfGqX/UEhQT00EddfVttbrqGm0lS1kJSkeJPQa23cvbeubXXi3blwPRXpLkRuWlcVSijlXkY6gHIKVA+7WJDXFpcBoF9PvniZK2BzrPcCQOYFr+lwtLI1LKf66b/LH7dSdfpgH0pr8sft0AokboV17j/2o1+QP2a+mvnH/tRr8gfs19Ma9CXx6d1Gp0eONYe6bnollWZUrquOaiFSqawqRJfUM8qR5AdSScAAdSSBoAvoFxZjUaUrcLdDiXvfY+t3Pt1tr9jVvvxQ7DkvS1Lrr0cqGXmY6BhBKcnByoJyU5ONUlwuXXxCVXiSokVyoXlOofaKFZRWFyHIyI/IrJUXuiVg8vLjBJ6dQTqYyjLmOeXAW4JoyWcBbddI9LlvVw1xbhW5d+26EUm42lduuI0rsmpawc8yCMdk7nqCMAnvweumM8Bnv0iV4cfFy0Ldys0em2PSH6FTpzsNLcp51uU72SygrKxlKMlJITyHAIyTqEcO9vaYy2/wt4K4wrH6rBJxU0r8p4jcEciOI/Q1Vz7B79SblnHbncQLgXfDJZbcko7JU3k70qSfkvJx1Hzh1HXOmH8NKzcdv2jxObY07dPbKdFp18RmG5BYalI7dDieojvlJyhxJHqOEDuHgeli7B7vr3HtqTRLibMO8KIfR6nFdT2anMHl7UJ8OowoeCvYRqFA6SB/s8+/A8+494VzjFLS4hAcWw1uUf8AuR/kJ4j+wnbkdO4XDo0ajU5ZNTo0aNCEajRqdCEaojij3xRs/td6LRn0fZXWUrYpye8x0jouSR5JyAnPeojvAOrqq9Vp9CoE2tVWUiLBhMLkyH19zbaElSlH3AHXIvePcupbtbu1S8pxcQw8vsYEZR/taKkkNo9+CVK81KVq0wui9olu73Rv9lEq6jqmablV/JddkPuSJDy3XXFFxx1xRUpaiclSiepJOSTro9wfcPyNu7LTf90wcXVWWAWWnU+tToquoRjwcX0UvxA5U+ByuHB9sqjcndZV116IHbbt1xDy23E5RKl/KaaPmlOOdQ9iAeitdMtTcZrNeoZ5/ZMUMOnWORo1AUlWeVQODg4PcdYF67acxuXEshbMgz5VOdqaHQkdkG23ENkE5zzErGOmMA6zpcBuraOJ8hIYL2BPkN1n9RoUpKE5UoJHdknGp11NqoeIrdCp7YbWNzKCEJq1RkiHHeWgKDA5SpTmD0JAGAD0yc9cY0kD+8+67r63V7i3KFKOTyT3Ej6ADgfRpnuNdQG29tf4TX/InSSKV5ayOMzyipLQ4gABfRH7NsKoXYM2eSJrnuc65IBOhsN+C3c7x7reG49z/pF3/TrEV+/74ummop1x3dWqtEQ4HUsTZa3UBYBAUAo4zgnr7TrXM9dSlC15KUlWBk4GcDz1VmWQixcfVbtuH0cbg9kTQRxDQPott2sopuHeu1aPy8yJFUjhwH7wLClf5KTq+ONumoF6WpXm+VSZMJ+KVp65LToVjP8A0p1ovCnS2p3ElT5z4+50yHJnKJ8MN8gP1ua2jdupu3vwbWneDpLj8a4ZrDivvUuuPKAP0Jb1ZQMHsTxxOvpb7rEYtO8dJaZ4PZYA0+Mgkt/2BLQdeSXL9Fb9RX3U/Jx3p9uvcyy7JlsRY7ZcekOoYaQO9S1qCUj6yNMfxg7VUazrLsWtUCnRYyIrRosxcZoI7ZYQFtrWR3qPK71PXrq66J4Myrq45Kofh3Nv7iNbeHPntzVV+0zpk7CKN9HRO/HcNT+Rp4+J1ty35XX8b0bwgYG6F3ADuAqj39LQd694h37o3d+lXv6WtLGNfhwjXtxo4fyD0C+URUyn+o+quXbjif3Vs2+oU6rXZVLipK3kIm0+qPmQFtEgKKFKyULA6gg4yOoI04PFaW5+2lk0iRzLpdXvakQ5yPmuMKcUopUPIlKfq1zOU+lDqQggq5h18uuumfFfGdHCVJr0cHt6DMptYbIOCC1IbyR7eVR1kcdhijniMYAJvt5WV/hkj3xuDyr8SEpTypAAHQAeGp+v69fCJJamQGJjB5mnm0uoPmFDI/br76yquEapu++FnZHcS5ZFw3BZyUVWS52kmVAlOxVSFeJWEKCST4qxk+erk0aU17mm7TZcIB3Sx75bUW5tZYP25do6ZFtO47RbafWmnjsmanCQUocjSEDo4CjrzH1sjv8AEffd62ajR6hReJLbWKUVGIw3JrEFPQToa0AlSgO8hJwo+QCu9Gs5xUTZNW24ou0tJcxVr8qzFIRjvbjJUHZLvuShIB/K1d8anxItHapbTCDEaZDCWlDKeQJ5Qkg94wMaTUxddEA7fgeXL4qwwrEX0FR1rRduzm8HNO4PiPTQrG2fdlGviyafdNBkh+DOaDiD85B7lIUPBSSCkjzGs5pXLYlOcO/E47YMxxTdhXg76TSHHD6kKSSElvJ7hnlQfYWifHTR6Yp5TI2zveGhT2L0DaSUOhN4njMw8weB7wdD3hRqdRqdPqqRo0a/K1pbaU44tKEJGVKUcAAd5OhCUjjm3OVRrDp+2NMf5ZdbPpVQ5T1TEQr1UH8twfU2oeOkGhU+bVqxFpVNjLkzZbyI8dhAypxxaglKR7yQNWDvXfjm5W+Vw3b2hXEekliCD82M36jWPLIHMfao6tzgk22TdG9Eq96hHC4FtNBTPMMhUt0EI/ioC1ewlOtrCwYfR5nb2ufE/qyoHuNVUWG30TtbPbb0/ajZuj2ZCCFOxmu0myEj+2JK+rrnu5ug8khI8NbTTrgolXqNQp9MqsSVKpz3o8xhpwFcdeMhK0946HWS1o917a0+vXPEu6jVGRblzxSlKarCSCX2gRzMvtn1XkEdwV1BwQdYmaR7jn3J3WnpI4HEslcWi2htcA943t4ajkdljaHSqxZ+/dXhxIMqRbFztqqodQgqbg1BHKl5Kj81LqeVQz85JA1lZVq1N/iBpl6oVH+LY1Ck05wFZ7TtXH2lpwMY5cIV1zqu9zN2bzqG5Y2k2ahMSbiSjnqFVkAKZpyeh8cjmAKckg4yEgFR6Lbufc9/WNcERmBxB1K5auef09umyHUMw1pIwkHm5FZyRgAY5eoGdVU9ZFCCLEgHu35Dn5bLdYX0brsTex2ZrJHx2sQ4kttYOdYENuNAXEZiL6kpv75plXvTdK27QMKU1bMAprtVllBDUpba8R4qVdxPaDtFDyQnz1vVXuCiUBMQ1qqxIHpchESP6Q4EF51ZwlCB85RPgNKtsBxS1WtXXCsPcl1p+RMUGYFZSgNlTp+S08kYTlXcFgDrgEdc6YWkbbwY9/yr2uGov3DWy4sQHpiAlumME9Go7Y6IOMBS/lK8xnGpNPO2ZvWRa33vwVJi+GS4dKKPEOyIx2Q3XOSdwTp4k6gACxVdcU1mqvSy6DBTc1u0LsZ63O2rc30ZC/uRHKk4OVeOPLSzscN8uSAWt3NsiT95WuY/qTq8uNnH2trZH/Ki/wCROklOPIfVqhxWSNtSQ5l9uK9Y6B0VbNgsboKjILu0yA8eZKvljhQrknq1ulYS/wC91BS/2J1bW2FmWPsPHZpV5Vyk3DXLymijpMJYW2zGUkgg83UJKiAo+JUgeBOkqPuH1a/TbrjLyHmVltxCgpC09Ckg5Bz7DqLFWxRHMyPXxuryu6M11dGYKqtJYdwGBpPLUHgbHvsmk24s6VtJM30lSyrnoVKVBivq71JeC1tK+lIaP061i01Cs/B731T3FDmolYZnpJPyUqLQPT+Pq0N0r+p1y8CZu+MhpuqXGYdOqDiB6y32lnnSr/q1kexQ1TfD3JFybZ702KyUqclW0ZbKepKlthwdB49VI/Vq9pKH2idsTL9WGnMeQcdPPZYCuxl1Lh01fVWFR1rA1p/qdCG5vInMT423IWpcN9BVeXFPbEZaAYtPeVUngeoCWE8ySfevsx9Orli1eZxE7YbzWdSVpm1hi4W6zRWlK7misNJAPgORlWfy9Vxw3LVZ2yW7m7zquR2FSBSKe4e8Pvdeh8+ZTGqt2Z3frmyl7SriokGLUFSYK4LseUpSUKBKVJXlPXKVJBx4gkdM516Z7KBmjpW26oNDfEHMfXivDamvlqpTU1r8z5SS4+Og8hwHAaDRXZde2nChYVwP2hdm5V4/H8BKETjBjB1sOlAUQOVhQHf3ZJGcHrrTptv8IKh9w3N3EPupiVftaGqJqlSnVmtTKvU5K5M2Y8uRIfWcqccWoqUo+8k68RSNTRSy2GeZxPiPsoHXR37MYsrmfonC4hwGPfu5TgB6Yosc/tUNdEt4aEm5eGO8qG0lThk0CSllPLklQZKkdPPKRrkOj+zI9hH7ddiNw6dJrGwFz0yE8+zKk0GS0ythwoWlZjq5cKHUHONUGNRmN0faJ338lZ0D84doB4Lw7F103Lw1WJWlKCnH6HF7Qj79LYQr9aTqwdJp8HhcS5u1N2W048pQp9SZltIUonkQ+1jAHgOZo9B4nTl6o6mPq5XNVgx2ZoKjU6NVjvtu9StnNp5tfldo9UnmXmqZGaRzlx8NqUkq8m0nl5leGR4kabYxz3BrRcldJAFytNs0Hc3jSum+lHtaHYsb7GKUrvQqc568xxPtSMN+46YDVW8O1osWdw3WxDTKRMlz4oq06Yk83pMiT92cXnx+WAD5JGrS0qUgusNhohuyqviD20TuZsvPgRGeaswAZ1MWPldqgdWwfx05T7yk+GvNw5bnK3L2ZivVF7mrtKIgVIK+UpaR6jpH46ep/GCvLVuY0o0ZX2i+PlyGP63te90hSR3NtuuKOPYOV7I9iXdV034MrZRsdD9CtRhg/eFBLQH32XkZ5e+3zGoHMJutGjw0amrMI1UXE1ea7I4ZbknR3ezmzmhS4pHfzvnkJHtCOdX0at3SW8edzEm0LLacIH3aqvoz34w03+13U/DIOvqWMO17+mqjVcnVwucklWlIHkkD6hrqJwsWKLF4ZqE08wGp9XSavLyOvM8AUA+5sNj69c4rDtZy9N07etRAJFTqDMVePBtShzn6EBR+jXYFhlmNGbjx20ttNpCEISMBKQMAD6ANXnSKazWQjjqq7Co7l0nkvpqFKShBWogJAySfLU6wV61D4p21uGqZSPRKZJf9Y4HqtKP82sm42F1exsMjwwcTZJPbd3V+k7HboXvDpMpyTcNT9DVX0SGx2HOvmUjlKgvqHVYUkEZI7saX105J8NXo7IXTPg5YC1t4VU7pURnuUEoUM/W1peZEp1YIyEjyGsNVMcSwE8L+tyvqjAqqBraqRrbHrC3S+oY1rRe54W2Fh3br6GU9HkplRHVNvx1pdQ4noUqScgj6RrrrQagKta1NqoORLitSM/loCv59cfG15S6nPUp11U2PqZrHDhZM5SipRo8dtRPmhAQf1p1dYJ2S9vgvNP2oASx08/G7h6/8Kd39r6duzty5bkyUYUlt0SYcwI5+xdAIyU+KSCQRkd+e8aUt7gx3TQ+tLNWthxsE8q/SnU8w88dl00+WjVlU4dDUOzvGqxGCdMsTwaE09K4ZCb2IvY9yQn+oz3Y/9Y2x/wBsd/da0zcvh9vfau0WbiuSZRnIjspMRKYT63F86kqUDhSEjGEHx8tdKdLPxxzRB4cqc7y8yjXWEpHtLL2orsCjeMkIJcdteK02HftNxA1LPbXNEV+1Zutu7XdIRWK3LZpYpDct/sSsuljtDyJURgqCc4CiMDPfjVv8F9RRH4m26O+r7hWaTLguJPzvVDgH/szpeC6p1wrWoqUo5JOrI2CrSKDxOWNUnFhCBV2WFKJwAl3LR/lNekUWDR4fhzqdmriCSeZt8uS8s6R9J58exT2uTRgNmt/K2/zO5PE91grb3Ppy9reBK1Nv3EKj1G467Jqc1tXyuyZWQgH2YEf6tK5gqWEjvJwNMhxt3cmucSXxEy6FM0CntRCEnp2rn3Zf04U2D+TpdqXCqFWuCFS6TCfnTpT6GWIzCCtbq1KACUgd5Op9ActMJH7uu4+f+Fn6oZpsjdhomSRwK7yuNJWKpaICgCP6+e/c6DwI7zH/AO1bQ/7c9+503m5PEXYO19RZth5NRuO6lNpKbeoLHpUpPQYLgHRvz6nOOoGNVRK454tCqrUe8dmbvt1hxWEuTFBtah+KlxCAo+wK1Qx4nXy+4B8PurJ1HTs3Wl7acCdyxb7g1TcivUY0iG8h9UGmLceXLKSCG1KUhIQgkdSMkjIGM509Sm0LZU2tIKCOUpI6EeWtH223isDdemLk2dW0vvspCn4EhJZksA+Kmz1x+MMp9ut71VVtRPM/8fccNrKXBHGxv4exSEcPK4+wPGLdG3lwPGNCqjqoDUh9XKjmCy5EX5YWhZSD5qA89Pvqj9/+Hmm7wQGaxS5LNMuqG12TEp0EtSW8khp7HXAJJSsZKcnoQcaWqbvnxKbBVOFYt0QItWlupApzFTbMxb6ObkT2TrKwtwZwAFZV1A9mq5jpnzZH65jofutRU01HVUjailcGPY3tMOl7f1N534je66CEhIJJAHt0gu6lbY4m+MihbbW7MVKtyE92UmQyTyGK0oOSnQe7C1JS2k9x5EH52vLWbl4zd/oSrZj2jKtmjSstyiiGulMLR4hx54lxScd6Ud/dg6Znh44d6LsbbL7r0tFXumopSKhVeTlSEjqGWQeqWwevXqo9TjAAuWBtGHOJBeRYW4X4rKkmYgAdn5q6GGGY0VuPHaQ0y0kIQ2gYCUgYAA8gMa+mjRqrUlGly4yLQXV9mId4QklM+3ZiXu1R8pLLhCFY9y+yV9B0xusHeVvMXZt7W7ZkpSW6jCdi9fAqQQD9Bwfo0zURdbG5nNWWD1xoa2KpH9JF/DY/C6xW1N4pv7Zu3rr5kl6ZET6QE+D6fUdH8dKtbjpV+Ce431WZc1jTlKTJpM4SUNr70pdBSsD3LbP8bTUaTSy9bE15T2P0AoMQmp27A6eB1HwKPDrrmvxd1w1rinrEcOFTVLjRoCPZhvtFf5Tp10o8NcnN36iqs793pU85D1ZlcvXPqpcKE/qSNaro3Hmnc/kPmVksXfaIN5lWJwaW6KzxQRqitsKbo1PkTevcFqAZT/KqP0a6P6SrgLo4NQvivrSeZCIkJB95ccV+xGnV1Gx2TNVkcgB9fqnsNblgB5o1QfFpuY9t9sp8XtWvMrqbjW7SnRGeLRYbU0oqXzBC+vTAGMdTq/Nc2uLNneSpcV9eaoEa+n6Iw3Fai/FjUsxkp7BCl8hbHKfXUsnxznVfSwtmfldt3qcZXQ2ezcbLSq3cUeFt7RIaqPcVQguqL6KKzW3XEw1FPMSpsxeVKvWI6DvJ1qC7joyh12zuYf8A8ir/ALrqajR98FrbTGpO4+ADnlYn9P1a8Ro2/Wf9aty/+pn/AOjU6TA6AOsGN9T91ZRdMMZy/wAw/XuH2XpTXaKD020ujJ8RUld3/ZdPpwZ7lO3dthOs42pOorNsdk2w7LfU8qQh5Tq8EltGCkpI6DuI0gaaPv0D/rXuX/1M/wD0atPh0jb1U3ies16pw79Ypzk/spiprUwMFpSFBQc5xy8vd3+ONJdhdNExzomgHxKi1WO11aGx1MjnNB2Nt11A1OoHyRnRqqTCnSscfB5eGmlH/wDMMf8AkH9NPqkOK7bCvbq8O8mjWw0JFXp8xqpxonMEmSUBSVNgnpzFLiiM95AHjqTRPEc7HO2BTczS5hAXKxLvXX0S+pCgtCylQOQUnBB88690qy71gTXYcyz7gYkNKKHGnKa+FJI7wRya+f2L3Z/wWrv6Oe/oa2wqm81QGndyXllzZEqU5KlSHZD7qitx15ZWtZPeSo9SfadX5w1uR7Osvc7fBcdqROtGkJYpaXRlLcuSVIS5j2YA9y1aotVq3af96td/Rz39HTG8M9k3Xd+1m7e1Mq2atCZuCkNvxKhLhONMIlsKJbbUtQABUVJPuSrUDEJw6EgHTT0vqpVLCRIC4LL31f8AVeGyy6BadlGOrca6aeiv3TdstpMiUpb5JDSCsEd4X3ggBIOMqJHn2334r91zo1hb3TI95WpXH24UtmqMNh6Mp5YbbeZcQlJBStScg5IB5kkFOD9r72/q/EnZNBuuyBHTuPa1PRQLotKW6mPJC2CQHUBZA7yrvIBCgM5SQcLthw6XZal1Q9yd9ExrMs23n0VCR8YyG1PzHGlc7bKG0KPepKc56nGEgk9IMLqUU7hKLv8AjfhZSJGzmVpYeytanWFfmz163lctl1l5Tu39dbhuyGx91ajPp5o7yx3KbUPUcSenUZ6Hp0O2S3Wp28W0MC7YiER5mTGqMNKs+jSUAc6R+KchST96oeOdV5w92zIvS29w9ybyoqmYm5FQU8zS5aMK+LUNllnnHmtBUfdg+OlxjydwOCTfWehynP1mxKuvDbi1cjcxoElBDmMIktglJB+UM+BBDEjvbWmN38Ru3fzH2ToaIDmHunfu710W0mu5rDV7/CaWTR0cr6KIIylpHzFNByWrOPe3r1XP8IBYMa1FuWratdlVlbZ7NqpobYjtLx0K1pWoqAPgkde7I79ezhJ27vSfXqxvluXHdaq1aCxTm5LfZuqQ4oLckKQfkBWEpQnphAPgRqoqaKZjA53Z1G+/krzCa+nhdK5+pLCG6aXNhr5XKbPwGe/U6NGm1Xo1GjU6EI0eGjRoQk22wULF+Ecuu2Unso9XVKShB7vXCZaMfQCPp05Okx3dc+xf4Rmz60kKSJqqepah0yFKVHV+oac4ar6Ds9ZHycfitf0sHWCkq/zxNv4jQ/RHlrj/AF50yrjqUpXVT0t5wk/jOKP8+uvrpIjuEd/Kf2a4/TMqkvE9/aKz9Z1vOi4v1p8PqvNMaOjPP6J3+BmCGtnLjn46v1ot5/IYb/paaXS38EzYTw5TV+K67JJ+htofzaY/VHipvVyeKsqIWgZ4KdR9J+vVS8Ru69a2a2VVeVBp1Pny0z2IvYz+fs+VwqyfUIOennqhtkuNyuX5vRS7PvmgUGlQKoTGjzIJdCkST/Y0q51EcqiCn3qTpiOkkkjMjRoE86VrXZSnT+k/XqfpP16j26TffjjTrG3O806yrIoNEq0emISzNlTy6T6T3rbRyKAwkFIOfncw8NIggfM7Kwarr3tYLuTkY9p+vWOr9eo9rWxOuG4KizT6ZBZU/Jkvr5UNoT3k+fsHeTgDqdVZw0bwV7ezaGXdtw0unU+UzVXYCWYHPyFCW21BR5yTnKz446DSoXNx1349PqVCqO39kT4TMlxktTGXnUrCHCElSVLwT6oPd36dio5JHlgG26S6ZrQHHirU244pN3N6t35dB20sOgItth/LlWqhfUYkbOEqe5FhJdUASltPXPTOAVab8c3IOYgq8cDGubVL48L1okdbFE242/prK1c624bDrKVKxjJCVgE4A66bK3t76/WOBmRvc9SaWirtU2ZNENvn9GKmXVoSPlc2CEDPXz09V0r2kHLlB03ukxSB2l7q89T4a50q+EJ3OSTmy7PA/G9I/ea2K1fhDKoKq03e230NcFZAcfospSXGx4kNu5C/dzD36ScMqAL2QKmM8U+f0n69GPafr1r9k3vbO4dkwrrtKqN1CmS05Q4nopCh0UhaT1StJ6FJ6jSZbk8cW4dmbw3RaNPtG134lIqkiC09I7ftFobWUhSsLAz0640xDSyTOLWjUJx8jWC5T249p+vR7OuudI+EL3M7zZtm/XI/eabbhs3drW9Wzb94V6nU6BKbqb0IM08rLZShLZB9ck59c+PgNLmopYW53jRJZM15sF7NxeHnbfcq4W7kqMSoUa42wEiu0GWqFMIHcFLT0X4DKgSAMZ1r9E4UNt4dxRq3ddUuq+5UVQXHTddUVNZZI7iGsBJ/OyPZqqN5+OqDa9zSra2to8KuPRFqZkVietXovaDoQ0hBBcAPTnKgMjpkddVDSOPreGLUw7U6ValUjFWVR0xnGDy+QWlw495B0/HR1TmXGgSHTxg2K6UJSEICEAJSBgADAA8teWqUml1ylu0ytU2JUYTww5GlspdbWPalQIOq42O32tXfKzXarRG3YFShqS3UKVIUFORlK+SQodFtqweVQx3EEAjGl1XxpX+OJc7ci1ba+Lhc3xJ6Qe37bsvSux5/l45sde7GdRmUsrnOaBqN04ZWgA33TP0bZHaC3q0KvRttbYhzkq5kSG6e3zIPmnIPKfdjW+6Xbim4hLo2JRa5tuiUipfG5lB74x7T1Oy7Pl5eRQ7+c5z5DXu4ZeItG+lvVONWoUGmXNTHAt6HEUrs3Y6vkOo5yT0OUqGTg4PzhodBK6PrjqEB7Q7IN1ffjo0tvFJxGXVsVV7Yh23Q6NUU1ZmS48qodrlBbU2By8ih385znyGtit7eu4KvwOv72SKTTG6w3TJc4Qm+09GK2XVoSOqubBCBnr4nSfZpMjX8CbBd6xuYt4hXhqdc6T8ITucn5Vl2eB7fSP3moPwhe5uD/qNs365H7zUn92VHL4pv2mPmui+jXwhPqlU6PJWkJU60lZA7gSAf59ffVen0lvGATB4gbEqyehTGbPMP+Llc3/xadL/TpLON3pf9kKT8r0Z/+VRpz2CTGbJ7ykZ+rVfS/wAxMPD5LYY9rg+Gu7pB6OC/fTx92uQVZaMavVCMehalPNke5xQ/m11+1yg3Vppo++N4UwgJDFZlhIHdguqUP1KGt10Xd25G9w+v3XmmNN7LD4pzeCV4L4eKi30y3XZA+tpk6ZIaVPgXn9rtjdVNJz6PVkO48gthI/ag6azVNizbVkg71YUJvTs8Es3Hb/BPc/wzD/avXNFqNUGYSKywh9phqQGky2+gQ8BzgA+CsDmHu9mul3Hb/BOX/hmH+1elz4Zdro+7/DHuxaGEJqPpUKXTH19zUpDTpQfYFdUH2LOp1BMIqbO7a/2SJ2Z5LDkmIpvFLBPAqvdSQ+wu5YzfxQuKcevVOXCTj71Qw9j73Plrm1Kbq1QZlXFMS/IQ7L5JE1zrzvuBThyfFRwpWoWmsMF221iagiXhyndf7ZTlvBR/dBko8+uNNFxC7VN7P8G+29svISKvIq70+rLT3LlLjesnPkhISgfk58dSIo46V2Vu7z8E08umFzw+avngD/gxVP8AxikfyLGkasypW7RuKWmVW7+wNBi3Ep6f27Bfb7EPL5uZvB5h7MHTycAf8GKp/wCMUj+RY0idt2mzffEnDs2ROchNVevrhKktoC1NBbyxzAHoT79MU9uunvt/ynJL5GWT5fb14KAgqLNp4Ayf9Si/+763/epuhI4I7yVbMSJFpDtuPvxGojAYbCHEc4KUADlzzZxgd+qOV8HbbKkEfbOrQyP/AFez/S1eu99KRQuCa76I28p5EC2HIqXFDBWG2ggKIHdnl1XSdTnZ1TideKktz2OYJK+BqgUK4uIerwrgotOq0VFBedSxPjIkISsPsgKCVggHBIz7TpheKzhxsGfslXL4tK2afQ7gorBnFdNYSwiUyjq4hxCcJJ5cqCsZBTjuJ1RfAEf/ACla1/i8/wD5wxpwOKS86VZvCzdq58lpuTVILlLhMKVhT7rw5MJHjhJUo+QSdSquR7awZDyTMLWmHVKt8H9e0yBujcFgOvrVAqUE1JpsnKUPsqSlSh5FSFgHz5E+WqR3YegxuNW65FT5DBau91yTzo509kJQK8jByOUHp46tPgGocmfxIVKtIbV6NS6K6HHMdAt5xCUD3kJWfzTqqd3KamscZt30dbqmkzbteiqcSMlAck8hIB7yObOprQ0VUnhqmST1TfFO2N8+Ckqx2VpkZ/4Kr/7vrMb1X7bFrcC9Yu3axmFAp9bjts092nxBESfSlhtToQEpKVcnN1IByB5arYfB4Wz0A3NrfT/k9n+lrbOIzbJdrfB3Ls2lS3qi3bLcNzt3EBK3WmngFrKR0GErJPsGqy0BkYGOJ1F7qUM+U5gPJLZwYbPW9uduzVKrdlObqNFt+M276C8MtPyHFENhwfOSkIWrl7ieXORkF590NhNvdyNtZttrtqj06b6OpNOqMaGhpyE6AeRSSgA8oOMp7iMjSk/B9XfTqXuPdVmTH22pFYiMyonOcF1bBWFoT5nlc5seSVeWn2uG4KTa1qVG465LRFp1PjrlSXlHohCASfeemAPE4GjEJJBU6Ha1lyna0xqh+HvhUh7H3M7dLt6T6vVpMQw3mGWUx4nIpSVfIPMpRBSMEqHj066Rl3rx9Lz/APiB/wDUddLdu989q903ExrMu+HNnlvtVU50KYlJSO8lpYCiBnqRke3XNJz+H0r/APUD/wCo6fonSOfIZd7JucNAaG7XTE/CK/I28/KqH/yNKltVf1wbP7r0K+4LDwbR6zrBylM6IpRQ6geBB5VYPgtAPhprvhFP7Ht5+VUP/ka1NvZdW5Xwa9q3ZRIxcuO2lVB9CG05XKielOl1keJIxzpHmFAfK0/TSNZSsD9nEj5pErS6Ulu4Xo47ripF2M7W3JQZiJdMqNNlyoz6PnIUpgjPkfAjwII1Z1k/7UJM/wAXql/nD2kFn3RV6pZlFteZI7Wn0Z2Q5BSepaD5QpxIP3vMjmA8CpXnp+rJ/wBqEmf4vVP+Xe0mohMMUcZ4O+67G8Pe53cld4Wbq2utDeGo1TdpNPVRV0lxlkT6eZqO3LrRGEBCsHlSv1seYz1051A3X4PLnumnW7RIFpSalUZCIsVj7FyjtHFnCU8ymABk+JONI/w6bMwd8d0p9qVCuyqO3Gpi54kRmUuqUUuNo5SFEDGFk59mm8sjgWt+ydyqDd7G4dXmO0ie1ORHcgtJS6W1BQSSDkA479cr+o6w53EOt5LtPnyiwFk2iUpQgIQAlIGAAMAaNTo1Qqckt4yU+mb2WLTU9VKjYx+XJCf/AIdOkBgYA6d2k33xbNz8f1h0BGFIjCAlxOM4HbreVn80DTkeGq+k1mmd3gegWv6QnJhuHQ8Qxzv9zv8ACjvGNc2eK6imi8UteWlBS1UWo89Ht5mwhX+U2rXSfSWcddtqbqtpXi0n1XG3qW+rHcUntW/1F36tazo/N1dWG/mBH1+i8/xSPPATyN14uBOtFq97xt5ShiTBjzUp9rbikH9TqdPBrmbwqXIm3uKm30uucjNTS9TF9e8uI5kf5aEfXrpj3jXOkEeSrLuYB+n0Rhb80AHJL5xmWxcd3cM66Ra1CqFZnmrRXRFgMKec5UlWVcqeuBkddaPwI2PeVlW9e7V4WrV6EqVKiKYTUoqmC6EtuBRTzDqASPr00F33fQbFtGTc1yzFRKbHKEuPJaU4UlSglPqpBJ6karL+qt2Qzj7KpP006R/Q1TvxFkURp3uAvrqdVfUmCVtZ+PTQueBpdrSRfyC/T/C9tXI4gBu85FqJrPpiagYfbp9DMgJwHC3y5zzAL+Vjm6+zVb8c9lXfem3dpRLQtmrV1+PVHXHm6dGU+ptJYIClBI6DPTOr/s3dLb+/ypFpXTBqL6E8yowJbeSPPs1gKx7cY17r2ve3dvbOfuW55io0FpSWxyIK1uLUcJQhI7yf5iT0Gux12UibNcN79Ey/DagS+yGMiQ6ZbEG57t1R/BNatz2fw8VCl3Xb1Sok1defeTGqEdTLimy0yAsJV1wSkjPsOkdl7Qb8UvcWXXqDtze8SWzUXZMSZEpzyVtntVFK0KA6HrkEa6eWNu1Ze4dnTrkt2c+qNA5hLafZKHWMJKvWT1zlIJBBOcHxB147I3x233EuZVAtOuPTJ6WFSS0uI60ORJAJytIHzh007DizWPLwQc/60S5cCrAHtdE4dV72h7PjyXPbm41u7/xxf/29NPbdM3RrfwbdyUm9KfctQvGTAqLIi1Jtxc17LiuyTyq9Y5TjA8tMReF42/Ydpv3Jc81cSmsLQhx1LSnSCtQSn1UgnvI1jbH3Ps3cWizqradTdmRYLnZPrXHcaKVcvN3LAJ6eWuzYk17hHYAjXvTMWGVHUmpaxxj2LrG1+V9rrlzbe2vEpZtWdqVpWRuHRJjrRYXIp8J9lxTZIJSVJGcZSDj2DWxR9guKHdu5GHLmolyuLHqfGN2SltoYSe/HaEqx7EJOdPWeK3ZAHH2VSf0dI/oazVt8Qmz91VZum0u84qZbqghtuY05G5ye4BTiQCT5ZzpX/iBjj2S2/ipT+iuJRMLpKeQNG/Zdb5L5bC7I0TY7bX4hgSPT6pLWJFTqJRymQ7jACR81tIyEj2knqTpAt4dot4pnExelft/bm7n2Ha/Jlw50SnOqSodqVIcQsDr4EEa6o6rS+t/NsNvamul124e1qSP7JBgtqkOt+xfL0QfYog+zSGYj7M50shGvNRafDJq9wgpmFzuTRc/Bc/M8a2P/AL4+v/O9OLwsU3cKs7AV+k71xLiky5lSfjqZuYOF12IthtJSOfryElY9+dbXanEztFdtYapca4HadLeUEtIqbBjpcUe4BfVOfYSNWpUqhFpFFl1We4W4sRhch5YSVFKEJKlHA6noD01x+JMqWdgNtzCcqMHq6GUR1MbmuOwIIv4c1zQ3b4Rt0tsb0XWduYVUuGhIe7eDMpSiZ0LBylLiEkL5k+DiMg4ycHprUam1xT7pRWrWrMPcevRg4k+hzIzyGsjuU4VJSk481np36f3+qt2QP++mT+jZH9DWRoPEjtDctzQKBSLjkPzp76YzDaoD6ApajgAkpwPedLZj8ZsHFpPA3F1Ik6KYmwF5ppA3c9l1vkq+4UeGmXs5Al3XeKozt2VFoR0ssKDiKexkKLYX3KWohJUR0HKACepKtubQ7qnjVVcA25uc0o3v6YJvxc52PYen8/a8+McnL62e7Gn4vXfTbTb25jQLqrj0OoBlD/ZIhuujkVnBylJHgemt8plSgVmjRKrTJSJMKWyl9h5s5S4hQylQ94OkxYmTI8gguOh7lDnwqeGGOWWNzWO90kEA+B4pQ+O2xL1vVNii0LTrNd9FVOMj4uirf7Hm7Hl5uUdM8px7jq2uE23q7bHCfbtFuWjTaTUWXJZchzmS06gKkuKSSk9RkEH3HWxjfjbJW5X2BCuP/Hvp3xb6N6G9jt+bl5efl5cZ8c41YM6fCplNeqFRlsRIjCC46++sIQ2kd5Uo9ANN+3CWEQtIIaUubDKimka6aNzS8aXBFxzHNc1uI7hevK3N7ZkzbizKvWbcq3NOZTTIqnxCWpX3RhXKPVAUeZP4qgPmnTHWhZ92RfguJVnyraqjNwKodQZTSVx1CSVrfdKU9njOSCCB7RrcqnxZ7NU6pKiNVeo1AJPKX4cJam/oKuXPvA1Ydjbm2RuPTnJdo15md2OO2YILbzOe7mbUAoD29x89d/fDZw2IOBLdd+SkVHRyvo2Gonge1p4lpA1+XmuXFt7bcSdmVZyp2lZG4dEmuNFhcmnwn2VqbJBKCpI6jKQcewa2ZZ41uzUB9uPPKcY9L8tP3cnEXtNaV1TrcrtwyI1RhOdk+0IL6wlWAflJSQehHdrFf1VuyB/31Sf0dI/oaefj8JJzZb+KIuimKPYHx08hadRZrrEHyVrW56b9h9K+Me29L9DZ7fts8/admnm5s+Oc59usl4dNeWl1KHWaFCrFPcLsSawiSwspKSpC0hSTg9RkEdDoqc+PSaJMqstXLHiMLkOq8koSVH9Q1CzA6qH1bg7IRrtbvSpWjHN6/CYXJWgO0jW+24AfBKm2kRgP4yln6NNxpXeFyI5A2zvbd6rICZddmvPtqX3qQ2VK6H8Z1xQ/NGmeYS6mM0l5XM4EgKI8Tjr+vUOgb+FnP9RJ9Vo+lko9tFM06QtbH/tGvxuvpqnOKKzlXjwzV9qO0XJlLSmrR0gZOWTlY+lsuDVxa/D7DMmK5HkNJcacSULQoZCkkYII9o1ZQSmGRsg4G6y0jA9pYeK460eryqBclPr9PWRJp8lqYyoH5zawsfXj9euv1CrEO4bXp1ep6+eJUIzctlQOcoWkKH6jrlDulZT+3W8Ffs91KgiDKUIylD5bCvXaV/EUn6QdPBwZX4Lm2GVa8l3mnW2+YuCckx15W0fcPXR+YNanH4hNAyoZsPkf18VS4W8xyOhd+rLZeK3+CxcH99i/5wjS48OWxVn7t2vXZ9yzKsw9BktsM+gvIQMKQVEqCkKyc6Y7it/gsXB/fYv+cI1X3BB/5jXZ1/8AT2f5I682qY2yYgxrxcZfuvbsGrZ6LojUT0zy14lGo3/oVJbx7TVrYC/6RVrfr0pyHIUXqdUUjs32HG8cyFcvTICgcjAUCenQ6Y277htLdngbau693n4iA0l9RhY50zm1KaCUJIIPMvIwfmr7xjOtX43qnCFt2nRu1SqaqU9K7MHqlsICMnyBKsD3Hy1YnClAej8L9HMtv1ZEmS+2lY70F0gH60k6bghDKqWnZ7pG3Lb7qXimIyT4FQ4zVfxmSWuNC4Au4242HA8dNVqfDjt7VrN4brlrdcjriy69GckNxnBhSGEMrDZUPAq5lKx5FOqd4Nf4RL4/5Gkf++1p5roSVWRWEpBJMF8Af9GrSM8G6kp4inQVAc1GkAZ8TztH+bXZ4WwTU8bdgkYTiUmJ4bjFZKO08A25aEAeQFkx3Fl/BdrP/OYn8unVf8G3+w5eX/Pe/wD/AG+t/wCLNSU8L9XSSAVSogAPie2Sf5jrQeDcEbN3irHT03//ADjTsv8A5i3/AE/dQaD/ANHTf/aP/wAJedh7Boe5O8jFr3C5MRBcjPvKVEcDbgUhOR1IPT6NblxH7FW5tLGotUtqrTno1QccYXEnKStaVISFcyVJAynrggjocdeuq02tp+4NT3Eai7ZvyGLgLLqm1x5CGFdmB645lEDu8NZGnR7x3b3jplpXveMliouPqgpkVpxbvo6wTlsJ8FFScAdAVYBOqOMsMGTJdxOh9F6nVsqmYr7UKoNgjZd8e5t2tbfXfRMnT946/Qfg+4Nzuy1mvuKVRYUpZ5lFQcUhLhJ71JbSTk+KRnVS8PewzW8Mip3LddSnM0eK/wBiSwsdtMfI51ZWoHAAKSTgklXv1anE5YkOzOEu2LdoKHDTqNU2krUv5S+Zt3LiseKlqJPtVrYeDKpwpWxU6mNLR6VDqzinmx3hLiEFCj7DhQ/NOrTqusqmQz6hrfU/r5LBe3ijwGqxPCxldLMdbatbfTw09M2i0PdTg9diegzNqVSphddDMmBUJCPuSSCe1DhA9UYwUnJ6jGrvpNvXfavCVV7fverRapVIdFmNCRHUtY7LsV8iVKUAVFI9XOO4D36WLcClcTth0mdc9fu6uw6UmT2aXEV4LJ51kIAQlef1dANWRsJc9z3VwvblTrmrtRq622ZTTLs59TykD0MkpBUegyQfp0qnfEydzWsLSQfD0TWL0+IT4ZDNPVRzRxvbqNXXJGhd3X+6o3h420tfdHcOo0S65U2PFjU4ym1RH0tKKw4hOCVJIxhR6aaq1eF3au2L1plxUiqVx2dT5CJTLbs5paFKQcjmAbBI+nSZ7UbWVzdm65dAoVRgQXo0Qy1uTVLCSkKSnA5Ek5yoaaHZHhqvPbPd6JddZr1EmRWo7zKmoq3S5laMDHMgDv8AbqPhrMzW3hvr7365K56bVHVSzZcRMZy/wrHXTa9/6vBU/wAYP8JBXspcbp/H1ZXB5uuZEZ7aytScuNBUqkLWe9He4wPd1WB5FfkNVvxf9OJTIJBFMjdfpXr7b+2FUdod3qTuHaCTCgT3UTYymR6sWWkBS28feq+UB4gqHcNIL3w1Uk7dmnXwKkNpqbEsCo8Jn0fLHdh5OYB8wfS6x7f+2Inx/wBWZ/zjW8cZm4U5+6IG3EGStuDGYROnIQcds6sns0q8wlI5gPNWfAaquyLhF2cZtDuZMb0b4zuVqWWM57Mrd5inPkCTrM8V0d+FxSVGU+glD8aI+1n5yA0EnH0oUNNmUilkLNi74KYyhYccomTjtRwXA/uBA+Fz81cO3/B7aUvbqHPvWoVdVZnR0vuNw3ktIi8wyEAFJ5lDPUnpnOBrA7dcOG69hcQiKzRJ0Fii06ZyioSnuU1CIcFSOyRk5KTj1sAKGR3DTe0ioRKrb8GpwnEuRpUdt9pae5SFJCgfqOvjHuKgTK5LosStU96pRCEyISH0l5olIUOZGcjoQe7V4MNphkIFiNiOK8rPTXGXGoZI7O14IIcLhoJtoOHLl5rnzulSole44KnQ56nExJ9wR4r5bUEqCFltKiCegOCeumL/AKkDZnu+Obg8v9cWf3elq3ko8i4OMivUGI621IqFZahtOOZCUKcDaQTjrgE+GrFg8GO4sWqx5K7qtpSWnUOKSHH+oCgf7n7NU8DbySfg5+0fJei4pKI6KiviBpvw26WJzaDXcJ0KLSY1Btqn0OEpxUaBGbisl08yihCQlOT0ycAarfiGqc5jZOTbtHBXV7lks0KE2D1Up5WF/QGwvJ8NWtrQnKUbo3wYrMlJVTbVYWzEB7nJz6R2i/b2bXKke11XiNaSZt2ZG8dP15LxjDZQ2qFVLrk7R7yNh5usD3XKwVVpEG07b242hpKk8sqay24MYK40NPpL7h/KWhtJ9r2raHd7dUtYdQ+2DxRXreTSu0o9qsJtKmr70LkFQenOJ9oUGG8j7zV06kuYIwGDgFXPldK90jzck3UanRo0hJSeccG2ypNKpW6NNYyuJim1MpH+5KUSy4fyVlSCfx0+WqF4ZtyU7bb/AFOkzpHZUer4pk8qOEoStQ7Nw/kr5cn71StdJ7mt2l3bZ1StmtsB+n1GOuM+jx5VDGR5Ed4PgQNcm9wbIqu3e5FWs2tJJkQHihLuMCQ0erbqfYpJB9hyPDWtwaZtVTOpJOHy/wAH6KjxCMwSioZ+j/ldHeJmk1St8NVcp1GpsuoTHHYxRGiNKdcVh9BOEpBJwATpPLIk8RO3dOmQLNt26aazNcS48BRFOFSgMA5W2cdD4aavhY3aG5WzzVNqkrtLioKUQ5nMfWfbxhp/28yRgn75KvMavT6TrD4jhLvaTmcWubpp+uK9K6P9MhQYeaM07ZWOdm7XgOG2lkgtt7Bbz7u34mubiCp02K4pPpVSq55Xy2PmNNHrnHd0CRnPsL2USjU+3bbg0KkxxHgwWER2Gh81CRge8+Z8Tr3dM940ZHmNcpaJlNct1J3JUTH+k1VjORkoDI2e61osB+v+AFC0JcbUhaQpKhgg9xHlpA792Z3Q2Z3UXdW3sOpSaa0+p6n1CmtF9cdCs/cnUAE9ASk5BSofSA/uR56Mjz12ro21IFzYjYhJ6PdI58FkeWND2PFnNdsR+ifU6LnXXarxEb4Pw7eqlLrVRYadC0MN070SOhfdzuK5UpyAT1UemTjTjbQ7YHa3Y37GnHESam+l2VOcZGUqfWjHKnxISEpSPPGemdWd08/16Mjz01TUAheZHOLnHiVNxrpbJiNOyighbDC03yt4nv2+XikU4W7IvKh8RESfW7SrdOiJhSUl+XBdabBKRgcykgZOsxxQbNXDG3UjX5YtFqU1NUV2kpFNYW6uPKRg9phAyAsAKz98lXmNOnkef69GR56bGFsEHUE8b3Ux/TyqOKjFGxgHLkLbmxGu/nr5KqLdae3s4bF0S/aNUKTUJUf0Ke3KjKYcQ+jBS+2lQGQSErHhnI8DpRnrH344f75kTbciVPslZaFRpscyospvORzowoD3LAIOceZ6IZHnrETrooFOuymWzNqjLNXqiHVwois8z4aAKyMDAwD49/XGcHS6ihbKGuc4hw0uo2DdKpqF80UUAfDIS4xnUDibdwA1uDoNdrpBaoOIjfyqQ6XVKZV5kZheUJXD9CiMk9OdZ5UpyBnqcnGQO/Tb25tg3trws1mzYClT57lLmOSXWUEmTJcZUDyJ7yOiUpHeQB4nX12u3QlX3ubf1FeLfoNHmobppS3jtGQVtLVzfOHasr6+3Hhq1cjz0mjo2C8uYuJuLn0UjpH0jqnGOg6lsMbC12Ru1yA4XOnPlve91zSsin767d1l6sWhadz0+XIY9Hcc+JVu5bJCsYW2QOqR9WrYsjcjijnbmW/CuCJcSaS/UWG5heoKW0BkuAL5ldkOUcueuRjTq5Ge/wDXoyPP9em4sLMVg2U25KVX9PI67M6ehjLiLZiLn1I4cEjnFVZN417iEM2hWpW6lFFNjo9IhwnHUZBXkcyQRkdOmmv3BsCn7kbRS7RqQDSn2EqjvqTkx30jKF/QehHiCoeOt0yPP9ejI89S46JjHSOOufdUNZ0mqKiCkiYMpp/dI3O2vwXOna3bHcK3uI61xVbMrjLMKtMh+T6E4WUhDmCrtMcpT0zzZxjTP8SOx0vdKgRK3bQaFyUxCkIacUEJlsk5LfMeiVA5KSenUg4zkXvkef69GR5jTMOGRxxOhJuCp+I9OK2rr4cRY0MfGLaXIPO/cVzvod8cSO2NHVZsCJcEOO1lLMeTSfSCzk9eyUpB6ZOehI8tbnsbsLfdzbqRtxdxoc6DDYlfGBNQyiVPfzzJyk+sE82CSrGQMAdeju9PP9ejI89Nx4UA4F7y4DYFTazp9JJDI2lpmRPkFnPA1N9+A18b+uq59bw2luOzxS3BdFtWlcD5ZqiJcOZHprjqCtCUFKknlKVAEe0dNZH7afF3nPoVz+77HE/udPpkef69GcjvOj91kOc5khFzfRdHTtj4Yoaiijk6toaC7U2AtxC16wpdaqG1tuzrkS6msP05h2aHmuyWHigFfMjA5TnPTAxrR9+tyIuzWw9Sq9NSDWpijCpEf5S35rxJCsd55cqWfPlx4jVsLWhtpTji0pQkEqUo4AA8SdJxbdRXxQcbQuJAL+3e3p5oORluZLJ9Rz28ykc4/EaR99q9pYQe0/Zo1+3mvP6mbO9xaLZjsNh/wmF2N2/VtnsPQLWlErqSGfSqk6o5U7LdPaPKJ8fWUU58kjViajU6ac4uJceKQBbRRqdRqdJXUaXDi02VXuBYabzt6IXLjobSipptOVTIvylNjzUnqtP5w+cNMdqdP01Q+nkErNwm5YmysLHbFcl9pNzaptPunT7upoW+wj7jNiJVgSoyiOdHv6BST4KSPbrqAKi1uHtSmpWRdTlORVogcg1iKy28tjm+cEOApKh1BSodDkd40k3FlsCqyq+/uRaULFuVB7mnRmU9KfIUflAeDSyfclRx3FOsPwucQX2sbl+xC65avsSqT2Q8s5FNfV07T+9q6c48Oivvs6bEIGYhCKqn94cPp4j4+iqKWV1LIYJdk2X2pt3/AMJW5v0FTv3eo+1Nu/8AhLXN+gqd+71crbjbzKHWVpcbWApK0nIUD3EHxGvBcNZj25aNVuGW265HpsN6a6hrHOpLaCshOSBnCTjOsv1rttPQfZXOUKqTtLvB+Etc36Cp37vQNpt4Pwlrm/QVO/d6iTxN7fweG+lbyTotXZplWdVGg03sULmPvBa0dmEhXLn7mo55sADz6a8lmcUFsXfCuhldmXlSK7btNVVX6FPp/LKkMJGQWgDgqOQAk4JyMZGcO2msTl+A+y52drr2/am3fz/CVub9BU793o+1Nu/+Erc36Dp37vWhnjfs/wCOnKMna3cldSba7ZUJNMQXgj74t9pzAdR1xjrrdrj4nrFtPeG29vK9TK1Dm16PEkNS3G2wxH9JJCEu5XzJIUMHocZ9+lFk4Ni34Bcu3mvr9qbd/wDCWub9B0793qftTbv/AIStzfoOnfu9e7e3iCszYqBSnrni1KdIqa3AxEpyW1OBLYBUtXOpICcqSnv7z79WfTZzdTosSpMoWhuSyh9KV/KAUkKAOPHrpovkDQ4jQ9w+y7YXsqi+1Nu/kZ4lrm/QdO/d6x9x7H3O7S5t1M3tNuW/4Xo71EqNRZZjpjditSiyEtgJ5XOdYUT3+rnu15Ny+LO1trr2qNvV6wr3dRCeRH+Mo8FAiPrUgLAbcWsBXfjHmD5ay1N4m7Ne2er249ft26baplHfbjKj1eD2UiU4sAoSyjm9bJOO8AYJOAM6bnpXzNBe3wtpv4cVOocSlonl0JHC9xe4HDXWx4gHUaFV9elvVbalFo27b63fjO5LbVaSpDBI5ZipLThf5h1z93kqB79WT9qLcqJTmKdReIO54MOMkNsocpcKQsNjolKnFoJUQMdT1OtfsXfXbzebdOjWzWrFuigXDBCq1RUV2GWQ6AgpLqClRHyVE+sOU46EkDVg7b7v0Dcy5rxodHp1RiP2rUviyWqYlAS65zLTzN8qiSn7me/B6jpqPHRPgeXEbWt3fQ6qwrscNXTsit2jfOSBcm9xY7iw00txWtfam3g/CWuX9BU793o+1NvB+Etc36Cp37vX1oXEbaNe2evTcWNRq03T7TlPRZjDqGu2eU0EklsBeCDzDGSNfSvcQ9pW9tdYt9TKRWVwbxkx40JptDfaMqeTzJLuVgAADrgnU/8AFva3wH2VD2ea8/2pt3/wlbm/QVO/d6j7U28H4S1zfoKnfu9Zpze63HuIdGztDpdVrdZaY9IqMqClsxaYnvPbrUoEKwU9ACcrSO/OPJvZxB2ZsVGoy7oh1Oa7VVuJZYpyW1LShsJKlq51J6eskdO8nXAZSQ0DU9w+yOza914PtTbwfhLXL+gqd+70fam3g/CVub9BU793rerx3Eodm7Oz9yZKJE+kRISZ+IYSpx5pXLylHMQOoWD1Oqns/jD26um7qNQahb92Wya0tLdNnVqAGo0laiAkJcSo95KQFd2SOozob1rgXNHwH2Qco0JWf+1Nu/8AhK3N+gqd+70fan3f/CVub9B0793r0bxcRtibKXJQqLdEepyZNXCnB6ChChGaC0o7RzmUk8uSe7J9RXlq3ULQ62lxtQUhQ5kqScgg9x0kvkaA4jQ9w+yAAdFTX2pt4Pwlbm/QVO/d6sKyLfuK27bXAue9p12zC+pwT5kRmMtKCBhvlZSEkDBOT1662XVGcSnEHTNlLGManuMSrvqTahTYSvWDKe4yHR4ISe4fOUMdwUQMzzODGjU9wQSGDMVXfF5vTUGyxsPt0XJl0V4ojT/RT67LTpATHBHc47nr96jJ+cCLw2O2qp+zuzNMtCMW3ZoHpFRlIGPSJSwOdX5IwEp/FSNUHwfbI1RMl7fjcYPyrhrHO9TBM6uoQ51XKXn57gJCfJBz87o4Wn6pzY2injOg3PM/4SIwXHO5Gp0aNQU8o1Oo1OhCjRo1OhC8lSpsCsUeVSqrDZmQpTSmX47yQpDqFDBSoHvBB1zX4jOHmp7QXCqs0Vt6ZZ013EaScqVCWe5h4/8AurPyh0PrDr0y14qxR6XcFBl0WtwI8+ny2izIjSEBaHEHvBGp+H4g+jfcatO4Uappmztsd+CRPhf4ofsSMXbrcWeTQSQ1Tqq8rPxeT3NOH+4+Svmdx9X5Ll7nONvbDXk60tK210CcpK0nIIMZeCD4jSFcRHC5Wdr5Em6rSbkVSzlKK1nqt6mZ+a74qb8nPDuV5n47GcTMizKI5txuQy/XLEmMrhqwpSn4DS0lKkoIOVtYJyjOU96T8021XQx1Q9qpNeY/XFQoKh0J6mfyK3+3LY2/u74OPbCk3rfzVlT/AIzdcodTcOeWWJLyQCnIyjCslWU8uArIx1sDZDc7cul8TM7ZTca4bfvNw0n0+NcVICe05UY5UPKSAD0UehGQSOpCtWzR9stkr02ApdnUeh0qt2HgvQGUPreQglSlFSHSrnSvmUrPrAjJB8tZLbfZLbDaVyU9YdqRqXIlpDb8ouLeeWgHITzrJITnBwMDIBOqd8zSHNcNbny+vkrINOhCpeiZ/wDC03L1OPsPb8f7xqu+Ifbo7pccs+045WKkuxFS6atBwUy2luLayfInKT+Vnw04bG3Vmxt2JO5bNGSm6ZMMQHah2zhK2Ry4Ryc3J81PXGempXt5Z7m6ze5S6Mk3Q3C+Lk1DtnMhjJPJyc3J4nrjPt1xtVlcHN3At5oMdxY81zYvcXhvFsbde+F+tPIcoEam2vTGiSEqfS4gSnSD87Kjn8Z0j5uniuO4N96RQLWY2psG3ripyqLHXJkVOpejLbe5AORKeYZHLynPtOrIvKwbR3AsuRad20ZuoUeQ4l12KHFshSkq5wctlJ+UM9/XWfiRWIMBiFEb7NhhtLTaASeVKQABk+wDXJakPA7O19OHBDWW4pWuN1dQe4SqA7Vo7ceeuvU9UlhpfOht0tOlaUnxAVkA+zVjcSFG27uLh1fo+5l2C2aZJfjiPVFArU1KBy3hHz8+tlP3vMcjGRv197fWfuVbTVv3tR01SnNSUTEMKdcaw6gEJVlCgenMemcddey6LRtq9bTkWzdVGi1WkyAEuRZKcpOOoIPelQ7woEEeB0hsoAaORv8AJKLd0rW2W4e5+3/E5bO0F73lbu4lLrcJfxfWqaEqlxm0IUtPaqT1KT2fUKKsghQUcHWjbSW1vVXt7t517S7h0q02WrpdE1udAEoyFF14oIJSrlwAoY8c6a7bvYDaPautvVqyLPjwKk6gtmY485IcSg96UKcUeQHHXGM+OtitPbmzLHrFeqlrUZNPl1+X6dU3Q8456Q9lR5sKUQnqtXROB1066pYL5BuBwHPkkBh0uUku1LUpn4PTfpma8l+UipzUvPJGA4sNtBSgPAE5OPbr67yCoq4EOHxNIcS3UTOgCKpeOVL3o6uzJz0xzcvfpwadsvtpSbCuCy6fbKGaHcDzkipxBJeIkLXgKPMV8yc4HySO7X6qWzm29Ysy3LUqNtIeo9tutP0qKZDqRGW2MIIUFcysD74nS/a25s1uN/hZc6s2sl+4SJbdh7o3/tDfUFtjcUz1VR+qrWpaq0yfW5kqV1ITzFYHiHCcZCtVlvPeNFvzjBvOPWbXua5aHQqDItmAig04zOwnOJPM8vqAnlWpzBzklseWnYrm1lh3HuTR9wKtQUuXLSAEwqm0+4y42kEnlPIoBY9ZXRQIwpQ7idfaytt7L27RVU2fRRTjVZap05fbuOqfePetSlqJ+ju6nz0gVLQ8yW1IXchtlSi21fD12fBO3fR6gVIqtsQ10WU25kLSlDiC1kHqPUUE9fFB0WLtbvVvPY20cO7I9s0bb23ERKnElRHlOTpraEJ7MKTkhKikAH5IGSepAGmkGyG1wiXdFRazaGLwX2tcaRJeCZiuYr5iAv1DzKUfUx3626h29SLatKDbNEiGJS4MZMSMwlxR7NpKeVKQokq6DxJzodVAXyDc38LhdDNrrnbuldlI3O3+3bqNRtW6LjhopirYt6TRKaqY1DfaWFF1agRy5cQo9MkpcV0033CtfytweFy3J8p3nqNNbNIm5PXtGMJBPtUjs1fTrf7E27s7bO2naBZNGTSqe9JXLcaS846VurACllS1FRJCUjv8NLJuhvXtTw1R7gtPZmkRHrtqspUqc23IcehwXyOrjuVEdp1/sSMdw5sAAFd/aR1MTddLfLXkkm0facVb2/3ELbOyNqELLVSuiY2TTqOlfU+HavY6oaB+lR6J8SFc4fNlbm4gdzH96933Hp1EMntmkSE4FVdSeiEp7hGbxjA6HHKOnMdePYjh0uzfe8Fbr7vy57lCkvekEylFMisq8Anu5GB3ZGMj1UYHUdDIMGHTKZHp1OisxIkdtLLMdhAQhpCRgJSkdAABgDTkr2UbTFEbvO55dwTbQZjmdtwC+yEpQgIQkJSBgADAA1+tGjVWpSjU6jU6EI0aNHhoQo0anRoQjR4aNGhC/DrTbzK2XkJcbWClSFDIUD0IIPeNJtv1wYMVJcq7Nn2WYko5ckW6pQQ06fEx1Ho2f+LPq+RT3aczRqRTVUlM7NGf8pqWFkoyvC5Kbd7tbmbBXvKj04yYnZvclSt+ptqS06od/O2cFC/JacH3jproLs3xL7ebwR2oMSWKLcZTlyiT3AHFHxLK+geT7vW80jWc3X2L293hpPY3TSuzqLaCmPV4eG5THs58eun8VQI93fpCN2eErdHbCQ7V6Kw7dFDZV2qKhS21ekMAHILjIJUkjGeZHMB5jVw6SlxD3+w/5/r1UJrJqb3e01dQe/RrmhtTxp7kWGlmk3en7MaM36mZbnJNZA6YS9158eTgJ/GGnR224mNoNzkNR6Pc7NOqqx1pVXIiyM+Scnlc/MUdVlRQTQbi45hS4qhkmx1VveOjUeOp1CT6NGjUaEKdGjRoQjRqPHU6EI0aPfrW7wv+yrApJqV5XNTaLHxlJlvBK3PYhHyln2JB10NLjYIJtutk1r94XvadgWy7cF4V2HSKe3/usheCs/eoSPWWr8VIJ0om6XHtDZbfpm09CMhfVPxzWEFDY9rbAPMr2FZT+SdVLauyG/3Epczd23jPnRaa71+Oq6FJSEHvEaOMEjy5QlH42rKLDXAZ6g5G/H0UV1SCcsYuVs28nGLeO405Vk7QQajSKdMX6MmSygqqU8k45W0oyWgfJOVnzT1Gt24fuC0RXot5bzR2338h6NbZUFoQrOQqUodFnx7MdPvieo0we0HD3t3szAC6BTzNrS0cr9bnALkryOoT0w2j8VOPaT36tbuGiauaxvVUwsOfErrICTnlNz8F+G222WUtNIShtACUpSMBIHcAPAa/eo1OqxSUaNGjQhGjRo0IRo0aNCEaNGjQhGjRo0IRo0aNCEaMaNGhCqHczhp2k3TLsut26in1dzJ+NqSRGkE+a8Dlc/PSdKNuBwFbhUVTsqwq1T7ohjqmLJxDlD2esS2o+3mT7tdF9GpcFdNDo06cimXwMfuFyig7h8TWwMlFPmTLpokRo8qYVbjqkQyPJBcCk4/IUNXBafwhVwx22271sCn1FOAFSaRKVHV7+zc50n+MNPw/Hjyoy48lht5lY5VNuJCkqHkQeh1WNzcN2xt2uLdq+21ES8vvfgtGG4T58zJTk+/Uk1sEv8WPXmEjqXt9x3qq2oPHbslVEIFVFxUNw45hLgdskfnMqV+zW+wuKTYCoI5md0KM37JXaMEfQtA1XFZ4CdmZ/Oul1K6aQs55UtTUPoT9DiCf1606Z8HjRVKJp+6dTZHgJFMbc/Wlaf2a5koXf1EIvOOAKY5viC2Qcb50brWlj21JsftOvJJ4k9iIiVKd3UtpQHeGpXan6kg6Ws/B3Oc/TdkY9tG6/wAtr3w/g8aUhQNQ3VqDqfFMelIb/WpxX7NHU0X/AMh9P8IzzflHqrZrXGhsDSUn0a6JtXUBnkp1NeVn85aUp/Xqrbm+EHoDCHG7P29qUxXch+qykRkD28jfOT9Y1tFH4B9ooQQurV26qqsd4VKaYQr6EN5H16s62uGHYm1Vodgbc0qU8jqHqnzTVZ8/upUB9A0ZqFnBzly07uICTGdxN8Te7sxdLsaLKhtuHl7C1qctawPxn1cyk+8FOspafBXvJflVFb3JrzVBDxCnXZz5qM9YPsCuUfnL+jXQ6HBhU6EiHT4jESOgYQyw2G0JHsSkADX3104mWC0DA35o9lDtZCSqT2z4VtottFszo9E+Pqw3gip1rlfWhXm23jkb9hCc+3V2anGjVfJK+Q5nm5UhrQ0WaFGp1Gp02lI0aNGhCNRqdGhCNGjRoQv/2Q==';
-function heroHtml(p){
-  const yr = (window.__curYear && window.__curYear.libelle) ? ' · Année ' + esc(window.__curYear.libelle) : '';
-  return `<div class="hero">
-    <img class="emblem" src="${EMBLEM_SRC}" alt="Médecine d'Urgence · ISTM-Tshikapa">
-    <div class="hi">Bonjour, ${esc(p.prenom || '')} 👋</div>
-    <div class="sub">${esc(roleLabels[p.role] || p.role)}${yr}</div>
-    <div class="motto">Scientia splendet et conscientia</div>
-    <svg class="ecg" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 H70 L82 22 L92 6 L104 36 L114 22 H170 L182 22 L192 8 L204 34 L214 22 H300"/></svg>
-  </div>`;
-}
-
-function iconForLabel(t){
-  t = String(t || '').toLowerCase();
-  const map = [[/tudiant/,'🎓'],[/nseignant/,'🩺'],[/romotion/,'📚'],[/pr[ée]sence/,'📋'],[/compte/,'👤'],[/paiement/,'💳'],[/message/,'✉️'],[/caisse|solde/,'💰'],[/moyenne/,'📈'],[/cours/,'📖'],[/contribution/,'💵'],[/^id$|matricule/,'🪪'],[/stage/,'🏥']];
-  for(const [re, ic] of map) if(re.test(t)) return ic;
-  return '✚';
-}
-
-function decorateStats(root){
-  root.querySelectorAll('.stat').forEach(st => {
-    if(st.querySelector(':scope > .sic')) return;
-    const lab = st.querySelector('span');
-    const ic = document.createElement('div');
-    ic.className = 'sic';
-    ic.textContent = iconForLabel(lab ? lab.textContent : '');
-    st.appendChild(ic);
-  });
-}
-
-function ensureHero(panel){
-  if(!panel || !currentProfile || !panel.children.length) return;
-  if(panel.querySelector(':scope > .hero')) return;
-  panel.insertAdjacentHTML('afterbegin', heroHtml(currentProfile));
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const main = document.querySelector('main');
-  if(!main) return;
-  let queued = false;
-  new MutationObserver(() => {
-    if(queued) return; queued = true;
-    requestAnimationFrame(() => { queued = false; decorateStats(main); ensureHero(document.getElementById('panel-home')); });
-  }).observe(main, { childList: true, subtree: true });
-});
-
-// ================= NOTES PAR COURS (système LMD) =================
-// Note d'un cours = 40 % interrogations + 60 % examen (si une seule des deux existe, elle compte à 100 %).
-// Moyenne d'un semestre / de l'année = moyenne des cours pondérée par les crédits.
-// Un cours est validé à partir de 10/20 ; un semestre est validé si sa moyenne est >= 10 (compensation).
-const PONDERATION = { cc: 0.4, exam: 0.6 };
-const EXAM_TYPES = ['examen', 'examen_final'];
-
-function lmdAvg(arr){ return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
-function lmdCourseAverage(cc, ex){
-  if(cc == null && ex == null) return null;
-  if(cc == null) return ex;
-  if(ex == null) return cc;
-  return cc * PONDERATION.cc + ex * PONDERATION.exam;
-}
-// notes (lignes de la table grades) -> { course_id: { ccAvg, exAvg, moy } } (tout ramené sur 20)
-function lmdGradesByCourse(grades){
-  const m = {};
-  (grades || []).forEach(g => {
-    if(!g.course_id || !(Number(g.note_max) > 0)) return;
-    const v = Number(g.note) / Number(g.note_max) * 20;
-    const o = m[g.course_id] || (m[g.course_id] = { cc: [], ex: [] });
-    (EXAM_TYPES.includes(g.type_evaluation) ? o.ex : o.cc).push(v);
-  });
-  Object.keys(m).forEach(k => { const o = m[k]; o.ccAvg = lmdAvg(o.cc); o.exAvg = lmdAvg(o.ex); o.moy = lmdCourseAverage(o.ccAvg, o.exAvg); });
-  return m;
-}
-// moyenne pondérée par les crédits (cours sans crédits : poids 1)
-function lmdWeighted(courses, byCourse){
-  let s = 0, w = 0;
-  (courses || []).forEach(c => {
-    const o = byCourse[c.id];
-    if(!o || o.moy == null) return;
-    const cr = Number(c.credits) > 0 ? Number(c.credits) : 1;
-    s += o.moy * cr; w += cr;
-  });
-  return w ? s / w : null;
-}
-const lmdFmt = v => (v == null ? '-' : Number(v).toFixed(2));
-const lmdSemLabel = k => (k === '-' || k == null || k === '' ? 'Semestre non défini' : 'Semestre ' + k);
-
-// ----- grille de saisie dans le dossier de l'étudiant -----
-async function gradesGridHtml(id, stu){
-  let h = `<h2 class="sec">Notes par cours (sur 20)</h2>`;
-  if(!stu.promotion_id) return h + `<div class="note">Assigne d'abord une promotion à l'étudiant.</div>`;
-  const cur = window.__curYear;
-  const editable = !!cur && vy() === cur.id;
-  const [{ data: courses }, { data: grades }] = await Promise.all([
-    sb.from('courses').select('id,code,intitule,credits,semestre,volume_horaire').eq('promotion_id', stu.promotion_id).order('code'),
-    byYear(sb.from('grades').select('id,course_id,type_evaluation,note,note_max').eq('student_id', id))
-  ]);
-  if(!(courses || []).length) return h + `<div class="note">Aucun cours dans cette promotion.</div>`;
-  if(!editable) h += `<div class="note">📁 Année passée : consultation seulement.</div>`;
-  else h += `<div class="note">Saisis seulement les points sur 20. Laisse vide si pas encore coté. Un champ vidé supprime la note.</div>`;
-
-  const rows = {};
-  (grades || []).forEach(g => { (rows[g.course_id + '|' + g.type_evaluation] = rows[g.course_id + '|' + g.type_evaluation] || []).push(g); });
-  const byCourse = lmdGradesByCourse(grades);
-  const cell = (cid, type) => {
-    const r = rows[cid + '|' + type] || [];
-    let val = '', dis = !editable, gid = '';
-    if(r.length === 1 && Number(r[0].note_max) === 20){ val = r[0].note; gid = r[0].id; }
-    else if(r.length >= 1){ val = (r.reduce((a, g) => a + Number(g.note) / Number(g.note_max) * 20, 0) / r.length).toFixed(2); dis = true; }
-    return `<input class="ggi" type="text" inputmode="decimal" placeholder="—" id="gg_${cid}_${type}" data-cid="${cid}" data-type="${type}" data-gid="${gid}" data-orig="${esc(val)}" value="${esc(val)}" ${dis ? 'disabled' : ''} oninput="onGridInput('${cid}')" style="width:64px;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);text-align:center;">`;
-  };
-
-  const bySem = {};
-  courses.forEach(c => { const k = c.semestre == null || c.semestre === '' ? '-' : String(c.semestre); (bySem[k] = bySem[k] || []).push(c); });
-  Object.keys(bySem).sort().forEach(k => {
-    const list = bySem[k];
-    const cr = list.reduce((t, c) => t + (Number(c.credits) || 0), 0);
-    h += `<div class="s" style="margin:12px 0 4px;font-weight:700;">${lmdSemLabel(k)} — ${list.length} cours · ${cr} crédits</div>`;
-    list.forEach(c => {
-      const o = byCourse[c.id];
-      h += `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px;">
-        <div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div>
-        <div class="s" style="font-size:10.5px;">${c.credits != null ? esc(c.credits) + ' crédit(s)' : 'crédits ?'} · ${c.volume_horaire != null ? esc(c.volume_horaire) + ' h' : 'heures ?'}</div></div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;">
-          <span>Interro</span>${cell(c.id, 'interrogation')}
-          <span>Examen</span>${cell(c.id, 'examen')}
-          <span style="margin-left:auto;">Moy. <b id="gm_${c.id}">${o && o.moy != null ? o.moy.toFixed(2) : '—'}</b></span>
-        </div></div>`;
-    });
-  });
-  if(editable) h += `<button class="mini-btn" style="margin-top:12px;" onclick="saveGradesGrid('${id}')">Enregistrer les notes</button>`;
-  h += `<button class="mini-btn" style="background:#a11a22;" onclick="downloadBulletin('${id}')">📄 Télécharger le bulletin (PDF)</button>`;
-  return h;
-}
-
-function onGridInput(cid){
-  const num = type => { const el = document.getElementById('gg_' + cid + '_' + type); if(!el) return null; const v = parseFloat(String(el.value).replace(',', '.')); return isNaN(v) ? null : v; };
-  const m = lmdCourseAverage(num('interrogation'), num('examen'));
-  const out = document.getElementById('gm_' + cid);
-  if(out) out.textContent = m == null ? '—' : m.toFixed(2);
-}
-
-async function saveGradesGrid(id){
-  const todo = [];
-  for(const el of document.querySelectorAll('.ggi:not([disabled])')){
-    const raw = String(el.value).trim().replace(',', '.');
-    const orig = String(el.getAttribute('data-orig') || '');
-    if(raw === orig) continue;
-    const gid = el.getAttribute('data-gid');
-    if(raw === ''){ if(gid) todo.push({ op: 'del', gid }); continue; }
-    const note = parseFloat(raw);
-    if(isNaN(note) || note < 0 || note > 20){ alert('Note invalide (entre 0 et 20) : ' + el.value); el.focus(); return; }
-    todo.push(gid ? { op: 'upd', gid, note } : { op: 'ins', cid: el.getAttribute('data-cid'), type: el.getAttribute('data-type'), note });
-  }
-  if(!todo.length){ alert('Aucune modification à enregistrer.'); return; }
-  const nDel = todo.filter(t => t.op === 'del').length;
-  if(nDel && !confirm(nDel + ' note(s) vont être supprimées. Continuer ?')) return;
-  const errors = [];
-  for(const t of todo){
-    let r;
-    if(t.op === 'ins') r = await sb.from('grades').insert({ student_id: id, course_id: t.cid, type_evaluation: t.type, intitule: t.type === 'examen' ? 'Examen' : 'Interrogation', note: t.note, note_max: 20, recorded_by: currentProfile.id }).select();
-    else if(t.op === 'upd') r = await sb.from('grades').update({ note: t.note, note_max: 20 }).eq('id', t.gid).select();
-    else r = await sb.from('grades').delete().eq('id', t.gid).select();
-    if(r.error) errors.push(r.error.message);
-    else if(!r.data || !r.data.length) errors.push('refusé (droits insuffisants : exécute le script notes_credits_bulletin.sql)');
-  }
-  if(errors.length){ alert(errors.length + ' erreur(s) : ' + errors[0]); }
-  else alert(todo.length + ' modification(s) enregistrée(s).');
-  openUserDetail(id);
-}
-
-// ----- bulletin de notes (PDF) -----
-async function downloadBulletin(sid){
-  if(!(window.jspdf && window.jspdf.jsPDF)){ alert("Le module PDF n'est pas chargé : vérifie ta connexion internet puis recharge la page."); return; }
-  const yid = vy();
-  if(!yid){ alert("Aucune année académique sélectionnée."); return; }
-  const year = yearLabel(yid);
-  const [stuRes, usrRes, enrRes, gradesRes] = await Promise.all([
-    sb.from('students').select('*').eq('id', sid).maybeSingle(),
-    sb.from('users').select('nom,postnom,prenom,code_id').eq('id', sid).maybeSingle(),
-    sb.from('student_enrollments').select('promotion_id,promotions(nom)').eq('student_id', sid).eq('academic_year_id', yid).maybeSingle(),
-    byYear(sb.from('grades').select('course_id,type_evaluation,note,note_max').eq('student_id', sid))
-  ]);
-  const stu = stuRes.data, enr = enrRes.data, u = usrRes.data || {};
-  if(!stu){ alert('Dossier étudiant introuvable.'); return; }
-  if(!enr){ alert("Cet étudiant n'a pas d'inscription pour l'année " + year + '.'); return; }
-  const grades = gradesRes.data || [];
-  const byCourse = lmdGradesByCourse(grades);
-
-  // cours : ceux de la promotion (année en cours) + ceux qui ont des notes
-  const ids = new Set(Object.keys(byCourse));
-  const cur = window.__curYear;
-  let promoCourses = [];
-  if(cur && yid === cur.id){
-    const r = await sb.from('courses').select('id,code,intitule,credits,semestre,volume_horaire').eq('promotion_id', enr.promotion_id).order('code');
-    promoCourses = r.data || [];
-    promoCourses.forEach(c => ids.add(c.id));
-  }
-  const missing = [...ids].filter(i => !promoCourses.some(c => c.id === i));
-  let extra = [];
-  if(missing.length){ const r = await sb.from('courses').select('id,code,intitule,credits,semestre,volume_horaire').in('id', missing); extra = r.data || []; }
-  const courses = promoCourses.concat(extra).sort((a, b) => String(a.semestre || '9').localeCompare(String(b.semestre || '9')) || String(a.code).localeCompare(String(b.code)));
-  if(!courses.length){ alert('Aucun cours pour cette année.'); return; }
-
-  const nom = [u.nom, u.postnom, u.prenom].filter(Boolean).join(' ') || stu.matricule;
-  const ident = u.code_id || stu.matricule || '';
-  const promo = enr.promotions ? enr.promotions.nom : '-';
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
-  docHeaderPdf(doc);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('BULLETIN DE NOTES', pw / 2, 38, { align: 'center' });
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  let y = 47;
-  [`Nom : ${nom}`, `ID : ${ident}`, `Promotion : ${promo}`, `Année académique : ${year}`].forEach(t => { doc.text(t, 14, y); y += 5.5; });
-  y += 2;
-
-  const bySem = {};
-  courses.forEach(c => { const k = c.semestre == null || c.semestre === '' ? '-' : String(c.semestre); (bySem[k] = bySem[k] || []).push(c); });
-  let totCr = 0, totAcq = 0, semAvgs = [];
-  for(const k of Object.keys(bySem).sort()){
-    const list = bySem[k];
-    if(y > ph - 70){ doc.addPage(); y = 20; }
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text(lmdSemLabel(k), 14, y);
-    doc.autoTable({
-      startY: y + 2,
-      head: [['N°', 'Cours', 'Crédits', 'Heures', 'Interro', 'Examen', 'Moy. /20']],
-      body: list.map((c, i) => { const o = byCourse[c.id] || {}; return [i + 1, c.intitule, c.credits == null ? '' : c.credits, c.volume_horaire == null ? '' : c.volume_horaire, lmdFmt(o.ccAvg), lmdFmt(o.exAvg), lmdFmt(o.moy)]; }),
-      styles: { fontSize: 8.5, cellPadding: 1.7 }, headStyles: { fillColor: [4, 30, 87] },
-      columnStyles: { 0: { cellWidth: 9 }, 2: { halign: 'right', cellWidth: 16 }, 3: { halign: 'right', cellWidth: 15 }, 4: { halign: 'right', cellWidth: 16 }, 5: { halign: 'right', cellWidth: 16 }, 6: { halign: 'right', cellWidth: 20 } },
-      margin: { left: 14, right: 14, bottom: 30 }
-    });
-    const cr = list.reduce((t, c) => t + (Number(c.credits) || 0), 0);
-    const avg = lmdWeighted(list, byCourse);
-    const validated = avg != null && avg >= 10;
-    const acq = validated ? cr : list.reduce((t, c) => { const o = byCourse[c.id]; return t + (o && o.moy != null && o.moy >= 10 ? (Number(c.credits) || 0) : 0); }, 0);
-    totCr += cr; totAcq += acq; if(avg != null) semAvgs.push({ avg, cr });
-    y = doc.lastAutoTable.finalY + 6;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
-    doc.text(`Crédits : ${cr}  -  Moyenne du semestre : ${lmdFmt(avg)} / 20  -  Crédits acquis : ${acq}  -  ${avg == null ? 'Non coté' : (validated ? 'Semestre validé' : 'Semestre non validé')}`, 14, y);
-    y += 9;
-  }
-  const yAvg = semAvgs.length ? semAvgs.reduce((t, s) => t + s.avg * s.cr, 0) / semAvgs.reduce((t, s) => t + s.cr, 0) : null;
-  if(y > ph - 55){ doc.addPage(); y = 20; }
-  doc.setDrawColor(4, 30, 87); doc.line(14, y, pw - 14, y); y += 7;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-  doc.text(`Moyenne annuelle : ${lmdFmt(yAvg)} / 20`, 14, y); y += 6;
-  doc.text(`Crédits acquis : ${totAcq} / ${totCr}`, 14, y); y += 6;
-  if(yAvg != null){ doc.text(`Mention : ${mention(yAvg)}  -  Décision : ${yAvg >= 10 ? 'Admis(e)' : 'Ajourné(e)'}`, 14, y); y += 6; }
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
-  doc.text(`Note d'un cours = ${PONDERATION.cc * 100} % interrogations + ${PONDERATION.exam * 100} % examen. Moyennes pondérées par les crédits. Cours validé à partir de 10/20.`, 14, y + 2);
-  doc.setTextColor(0);
-  docFooterPdf(doc, y + 8);
-  doc.save(`Bulletin_${ident}_${year}.pdf`);
-}
-
-// ================= PARTAGE DE L'APPLICATION =================
-const APP_URL = 'https://jacquham.github.io/istm-mu/';
-const DEFAULT_SHARE_MSG = "Rejoins l'application de la section Médecine d'Urgence (ISTM-Tshikapa) :";
-const QR_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges" role="img" aria-label="QR code de l\'application ISTM-MU"><rect width="37" height="37" fill="#fff"/><path d="M4 4h7v1h-7zM12 4h2v1h-2zM19 4h2v1h-2zM22 4h3v1h-3zM26 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM18 5h2v1h-2zM26 5h1v1h-1zM32 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM12 6h1v1h-1zM15 6h5v1h-5zM23 6h2v1h-2zM26 6h1v1h-1zM28 6h3v1h-3zM32 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM12 7h2v1h-2zM15 7h1v1h-1zM21 7h2v1h-2zM24 7h1v1h-1zM26 7h1v1h-1zM28 7h3v1h-3zM32 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM12 8h4v1h-4zM17 8h1v1h-1zM23 8h1v1h-1zM26 8h1v1h-1zM28 8h3v1h-3zM32 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM13 9h1v1h-1zM16 9h1v1h-1zM18 9h1v1h-1zM21 9h3v1h-3zM26 9h1v1h-1zM32 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h7v1h-7zM13 11h1v1h-1zM15 11h1v1h-1zM17 11h5v1h-5zM24 11h1v1h-1zM4 12h4v1h-4zM10 12h1v1h-1zM12 12h1v1h-1zM17 12h6v1h-6zM25 12h1v1h-1zM28 12h3v1h-3zM32 12h1v1h-1zM4 13h1v1h-1zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM21 13h4v1h-4zM26 13h3v1h-3zM32 13h1v1h-1zM4 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM10 14h2v1h-2zM18 14h1v1h-1zM20 14h2v1h-2zM24 14h2v1h-2zM30 14h2v1h-2zM5 15h1v1h-1zM7 15h1v1h-1zM11 15h2v1h-2zM15 15h4v1h-4zM22 15h5v1h-5zM32 15h1v1h-1zM6 16h2v1h-2zM9 16h2v1h-2zM13 16h1v1h-1zM15 16h1v1h-1zM19 16h3v1h-3zM24 16h1v1h-1zM27 16h1v1h-1zM29 16h2v1h-2zM7 17h1v1h-1zM11 17h1v1h-1zM13 17h3v1h-3zM17 17h1v1h-1zM19 17h2v1h-2zM23 17h1v1h-1zM26 17h1v1h-1zM30 17h3v1h-3zM4 18h1v1h-1zM6 18h1v1h-1zM8 18h1v1h-1zM10 18h2v1h-2zM13 18h2v1h-2zM16 18h1v1h-1zM18 18h1v1h-1zM21 18h4v1h-4zM27 18h2v1h-2zM30 18h3v1h-3zM4 19h2v1h-2zM9 19h1v1h-1zM11 19h3v1h-3zM16 19h2v1h-2zM19 19h2v1h-2zM25 19h1v1h-1zM28 19h1v1h-1zM31 19h1v1h-1zM5 20h1v1h-1zM8 20h1v1h-1zM10 20h1v1h-1zM14 20h2v1h-2zM19 20h1v1h-1zM23 20h3v1h-3zM27 20h3v1h-3zM31 20h1v1h-1zM8 21h2v1h-2zM11 21h4v1h-4zM16 21h2v1h-2zM19 21h1v1h-1zM21 21h1v1h-1zM24 21h1v1h-1zM27 21h1v1h-1zM29 21h3v1h-3zM4 22h1v1h-1zM8 22h1v1h-1zM10 22h2v1h-2zM13 22h4v1h-4zM19 22h3v1h-3zM24 22h2v1h-2zM27 22h2v1h-2zM30 22h1v1h-1zM7 23h1v1h-1zM12 23h2v1h-2zM16 23h1v1h-1zM20 23h4v1h-4zM25 23h1v1h-1zM27 23h1v1h-1zM30 23h1v1h-1zM4 24h2v1h-2zM7 24h1v1h-1zM9 24h5v1h-5zM15 24h3v1h-3zM19 24h12v1h-12zM12 25h1v1h-1zM16 25h3v1h-3zM21 25h2v1h-2zM24 25h1v1h-1zM28 25h5v1h-5zM4 26h7v1h-7zM13 26h1v1h-1zM15 26h3v1h-3zM20 26h2v1h-2zM23 26h2v1h-2zM26 26h1v1h-1zM28 26h2v1h-2zM31 26h1v1h-1zM4 27h1v1h-1zM10 27h1v1h-1zM22 27h1v1h-1zM24 27h1v1h-1zM28 27h2v1h-2zM31 27h1v1h-1zM4 28h1v1h-1zM6 28h3v1h-3zM10 28h1v1h-1zM16 28h1v1h-1zM18 28h1v1h-1zM21 28h1v1h-1zM24 28h5v1h-5zM30 28h2v1h-2zM4 29h1v1h-1zM6 29h3v1h-3zM10 29h1v1h-1zM12 29h2v1h-2zM15 29h2v1h-2zM18 29h5v1h-5zM25 29h1v1h-1zM27 29h3v1h-3zM32 29h1v1h-1zM4 30h1v1h-1zM6 30h3v1h-3zM10 30h1v1h-1zM12 30h1v1h-1zM15 30h1v1h-1zM17 30h1v1h-1zM20 30h2v1h-2zM24 30h1v1h-1zM27 30h1v1h-1zM30 30h1v1h-1zM32 30h1v1h-1zM4 31h1v1h-1zM10 31h1v1h-1zM12 31h2v1h-2zM15 31h1v1h-1zM18 31h3v1h-3zM24 31h1v1h-1zM26 31h1v1h-1zM29 31h1v1h-1zM31 31h1v1h-1zM4 32h7v1h-7zM12 32h1v1h-1zM16 32h1v1h-1zM18 32h1v1h-1zM20 32h1v1h-1zM22 32h1v1h-1zM24 32h2v1h-2zM27 32h2v1h-2zM31 32h1v1h-1z" fill="#041e57"/></svg>';
-
-function shareText(){ return window.__shareMsg || DEFAULT_SHARE_MSG; }
-
-function linkIcon(url){
-  const u = String(url || '').toLowerCase();
-  if(/facebook\.com|fb\.com|fb\.me/.test(u)) return '📘';
-  if(/wa\.me|whatsapp\.com/.test(u)) return '💬';
-  if(/youtube\.com|youtu\.be/.test(u)) return '▶️';
-  if(/instagram\.com/.test(u)) return '📷';
-  if(/tiktok\.com/.test(u)) return '🎵';
-  if(/t\.me|telegram/.test(u)) return '✈️';
-  if(/play\.google\.com/.test(u)) return '📱';
-  return '🌐';
-}
-
-async function loadShare(profile){
-  const el = document.getElementById('shareBar');
-  if(!el) return;
-  const [{ data: st }, { data: links }] = await Promise.all([
-    sb.from('app_settings').select('value').eq('key', 'share_message').maybeSingle(),
-    sb.from('share_links').select('*').eq('actif', true).order('ordre').order('created_at', { ascending: true })
-  ]);
-  if(st && st.value) window.__shareMsg = st.value;
-  const pills = (links || []).filter(l => /^https?:\/\//i.test(l.url)).map(l => `<span class="sh-pill">
-      <a href="${esc(l.url)}" target="_blank" rel="noopener">${linkIcon(l.url)} ${esc(l.titre)}</a>
-      <button onclick="shareLink('${l.id}')" aria-label="Partager ce lien" title="Partager ce lien">↗</button></span>`).join('');
-  window.__shareLinks = links || [];
-  el.innerHTML = `<div class="share">
-    <div class="sh-title">📲 Partager l'application</div>
-    <div class="sh-sub">Invite d'autres étudiants et enseignants de la section à rejoindre l'application.</div>
-    <button class="sh-main" onclick="shareApp()">Partager le lien</button>
-    <div class="sh-btns">
-      <button onclick="shareVia('whatsapp')" style="background:#1e7a3c;">💬 WhatsApp</button>
-      <button onclick="shareVia('facebook')" style="background:#1b5fc4;">📘 Facebook</button>
-      <button onclick="shareVia('sms')">✉️ SMS</button>
-      <button onclick="shareVia('email')">📧 E-mail</button>
-      <button onclick="copyAppLink()">🔗 Copier</button>
-    </div>
-    <div class="sh-qr">
-      <div class="qrbox">${QR_SVG}</div>
-      <div class="qrtxt">Scanne ce code avec un téléphone pour ouvrir l'application.<br><a href="javascript:void(0)" onclick="downloadQr()">Télécharger le QR code</a></div>
-    </div>
-    ${pills ? `<div class="sh-links-title">Nos liens</div><div class="sh-links">${pills}</div>` : ''}
-  </div>`;
-}
-
-async function shareApp(){
-  const data = { title: 'ISTM-MU', text: shareText(), url: APP_URL };
-  if(navigator.share){ try { await navigator.share(data); } catch(e) {} }
-  else copyAppLink();
-}
-
-async function shareLink(id){
-  const l = (window.__shareLinks || []).find(x => x.id === id);
-  if(!l) return;
-  const data = { title: l.titre, text: l.titre, url: l.url };
-  if(navigator.share){ try { await navigator.share(data); } catch(e) {} }
-  else { try { await navigator.clipboard.writeText(l.url); alert('Lien copié.'); } catch(e) { prompt('Copie ce lien :', l.url); } }
-}
-
-function shareVia(kind){
-  const t = shareText(), u = APP_URL, enc = encodeURIComponent;
-  const map = {
-    whatsapp: 'https://wa.me/?text=' + enc(t + ' ' + u),
-    facebook: 'https://www.facebook.com/sharer/sharer.php?u=' + enc(u),
-    sms: 'sms:?&body=' + enc(t + ' ' + u),
-    email: 'mailto:?subject=' + enc('Application ISTM-MU') + '&body=' + enc(t + '\n' + u)
-  };
-  if(kind === 'sms' || kind === 'email') window.location.href = map[kind];
-  else window.open(map[kind], '_blank', 'noopener');
-}
-
-async function copyAppLink(){
-  try { await navigator.clipboard.writeText(APP_URL); alert('Lien copié : ' + APP_URL); }
-  catch(e) { prompt('Copie ce lien :', APP_URL); }
-}
-
-function downloadQr(){
-  const img = new Image();
-  const url = URL.createObjectURL(new Blob([QR_SVG], { type: 'image/svg+xml' }));
-  img.onload = () => {
-    const c = document.createElement('canvas'); c.width = c.height = 800;
-    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 800, 800);
-    ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, 800, 800);
-    URL.revokeObjectURL(url);
-    c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'QR_ISTM-MU.png'; document.body.appendChild(a); a.click(); a.remove(); }, 'image/png');
-  };
-  img.onerror = () => { URL.revokeObjectURL(url); alert('Téléchargement impossible : fais une capture d\'écran du QR code.'); };
-  img.src = url;
-}
-
-// ----- gestion par l'administrateur central (onglet Système) -----
-function shareAdminHtml(){
-  return `<h2 class="sec">Partage de l'application</h2>
-    <div class="note">Le message ci-dessous accompagne le lien envoyé par WhatsApp, SMS, e-mail ou le bouton Partager. Les liens ajoutés s'affichent en bas de l'application.</div>
-    <textarea class="mini-input" id="shMsg" rows="3" placeholder="Message de partage"></textarea>
-    <button class="mini-btn" onclick="saveShareMsg()">Enregistrer le message</button>
-    <input class="mini-input" id="shTitre" placeholder="Nom du lien (ex : Page Facebook)">
-    <input class="mini-input" id="shUrl" placeholder="Adresse du lien (https://…)">
-    <button class="mini-btn" onclick="addShareLink()">Ajouter le lien</button>
-    <div id="shList"><div class="note">Chargement…</div></div>`;
-}
-
-async function loadShareAdmin(){
-  const box = document.getElementById('shMsg');
-  if(box) box.value = shareText();
-  const el = document.getElementById('shList');
-  if(!el) return;
-  const { data, error } = await sb.from('share_links').select('*').order('ordre').order('created_at', { ascending: true });
-  if(error){ el.innerHTML = `<div class="note">Impossible de charger les liens : ${esc(error.message)}</div>`; return; }
-  el.innerHTML = fmtEmpty(data, l => `<div class="list-item"><div><div class="t">${linkIcon(l.url)} ${esc(l.titre)}</div><div class="s" style="word-break:break-all;">${esc(l.url)}</div></div>
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;background:${l.actif ? '#1e7a3c' : '#6b7785'};" onclick="toggleShareLink('${l.id}', ${!l.actif})">${l.actif ? 'Actif' : 'Inactif'}</button>
-      <button style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;" onclick="deleteShareLink('${l.id}')">Suppr.</button>
-    </div></div>`);
-}
-
-async function saveShareMsg(){
-  const value = document.getElementById('shMsg').value.trim();
-  if(!value){ alert('Le message ne peut pas être vide.'); return; }
-  const { error } = await sb.from('app_settings').upsert({ key: 'share_message', value, updated_at: new Date().toISOString() });
-  if(error){ alert('Erreur : ' + error.message + '\n(Le script partage.sql est-il exécuté ?)'); return; }
-  window.__shareMsg = value;
-  alert('Message enregistré.');
-  loadShare(currentProfile);
-}
-
-async function addShareLink(){
-  const titre = document.getElementById('shTitre').value.trim();
-  const url = document.getElementById('shUrl').value.trim();
-  if(!titre){ alert('Merci de saisir un nom pour le lien.'); return; }
-  if(!/^https?:\/\//i.test(url)){ alert('Le lien doit commencer par https://'); return; }
-  const { error } = await sb.from('share_links').insert({ titre, url, created_by: currentProfile.id });
-  if(error){ alert('Erreur : ' + error.message + '\n(Le script partage.sql est-il exécuté ?)'); return; }
-  document.getElementById('shTitre').value = ''; document.getElementById('shUrl').value = '';
-  loadShareAdmin(); loadShare(currentProfile);
-}
-
-async function toggleShareLink(id, actif){
-  const { data, error } = await sb.from('share_links').update({ actif }).eq('id', id).select();
-  if(error || !data || !data.length){ alert('Modification refusée.'); return; }
-  loadShareAdmin(); loadShare(currentProfile);
-}
-
-async function deleteShareLink(id){
-  if(!confirm('Supprimer ce lien ?')) return;
-  const { data, error } = await sb.from('share_links').delete().eq('id', id).select();
-  if(error || !data || !data.length){ alert('Suppression refusée.'); return; }
-  loadShareAdmin(); loadShare(currentProfile);
-}
-
-// ================= ASSISTANT IA (sans clé, sans coût) =================
-const AI_PREFACE = "Tu es un tuteur pour étudiants en sciences infirmières, anesthésie-réanimation et médecine d'urgence (niveau licence, RDC). Réponds en français, de façon claire et structurée, en t'appuyant sur les recommandations ou protocoles reconnus quand c'est possible, et rappelle de vérifier avec les cours et les enseignants. Ne donne pas de conseil pour un patient réel. Question : ";
-const AI_SUGGESTIONS = [
-  "Explique la réanimation cardio-pulmonaire (RCP) chez l'adulte",
-  "Pharmacologie de l'adrénaline en urgence",
-  "Surveillance d'un patient après anesthésie",
-  "Évaluation et prise en charge de la douleur",
-  "Les gestes de premiers secours essentiels",
-  "Comment rédiger un plan de recherche scientifique ?"
-];
-
-function renderAssistant(){
-  const el = document.getElementById('aiSection');
-  if(!el) return;
-  el.innerHTML = `<h2 class="sec">Assistant IA pour tes recherches</h2>
-    <div class="note">Pose ta question en <b>médecine, réanimation, urgences ou sciences infirmières</b>, puis choisis un assistant : ta question s'y ouvre déjà préparée. Gratuit avec ton propre compte.</div>
-    <textarea class="mini-input" id="aiQ" rows="3" maxlength="800" placeholder="Ex : Explique la RCP chez l'adulte"></textarea>
-    <div class="ai-chips">${AI_SUGGESTIONS.map((q, i) => `<button onclick="aiPick(${i})">${esc(q)}</button>`).join('')}</div>
-    <div class="ai-btns">
-      <button style="background:#10a37f;" onclick="askAI('chatgpt')">ChatGPT</button>
-      <button style="background:#1b5fc4;" onclick="askAI('gemini')">Gemini</button>
-      <button style="background:#c15f3c;" onclick="askAI('claude')">Claude</button>
-      <button style="background:#0866ff;" onclick="askAI('meta')">Meta AI</button>
-    </div>
-    <div id="aiMsg" class="s" style="margin:6px 0;"></div>
-    <div class="note" style="border-color:rgba(211,18,27,.45);">⚠️ Une IA peut se tromper. <b>Vérifie toujours</b> avec tes cours et tes enseignants. Ne l'utilise pas pour décider d'un traitement réel et n'écris jamais de données personnelles de patients.<br>Astuce : dans WhatsApp, tu peux aussi poser ta question à Meta AI.</div>`;
-}
-
-function aiPick(i){
-  const q = document.getElementById('aiQ');
-  if(q){ q.value = AI_SUGGESTIONS[i]; q.focus(); }
-}
-
-async function askAI(which){
-  const q = (document.getElementById('aiQ').value || '').trim();
-  const msg = document.getElementById('aiMsg');
-  if(!q){ msg.textContent = 'Écris d\'abord ta question.'; return; }
-  const prompt = AI_PREFACE + q;
-  const enc = encodeURIComponent;
-  let copied = false;
-  try { await navigator.clipboard.writeText(prompt); copied = true; } catch(e) {}
-  const urls = {
-    chatgpt: 'https://chatgpt.com/?q=' + enc(prompt),
-    claude: 'https://claude.ai/new?q=' + enc(prompt),
-    gemini: 'https://gemini.google.com/app',
-    meta: 'https://www.meta.ai/'
-  };
-  msg.textContent = copied ? 'Question copiée. Si elle n\'apparaît pas toute seule, colle-la (appui long, puis Coller).' : 'Copie ta question puis colle-la dans l\'assistant.';
-  window.open(urls[which], '_blank', 'noopener');
 }
 
 const fmtMoney = n => Number(n||0).toLocaleString('fr-FR') + ' CDF';
@@ -3136,7 +2275,7 @@ const jours = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 async function loadScheduleAdmin(){
   const panel = document.getElementById('panel-schedule');
   const [{data:courses},{data:promos},{data:teachers},{data:scheds}] = await Promise.all([
-    sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id,enseignant_nom,credits,semestre,volume_horaire').order('code'),
+    sb.from('courses').select('id,code,intitule,promotion_id,enseignant_responsable_id').order('code'),
     pq(sb.from('promotions').select('id,nom').order('niveau')),
     sb.from('teachers').select('id,matricule_enseignant, users:id(nom,prenom,code_id,is_active,compte_status)'),
     sb.from('schedules').select('*, courses(intitule), promotions(nom)').order('jour')
@@ -3153,27 +2292,18 @@ async function loadScheduleAdmin(){
     actif: !!t.users && t.users.compte_status === 'valide' && t.users.is_active !== false
   }));
 
-  let h = `<h2 class="sec">Cours</h2><input class="mini-input" id="courseSearch" placeholder="Rechercher un cours, un code ou un enseignant…" oninput="filterCourseList()"><div id="courseList">` + fmtEmpty(courses, c => {
+  let h = `<h2 class="sec">Cours</h2>` + fmtEmpty(courses, c => {
     const t = c.enseignant_responsable_id ? teacherInfo(c.enseignant_responsable_id) : null;
-    const who = c.enseignant_responsable_id ? (t ? esc(teacherLabel(t)) + ' ' + teacherBadge(t) : 'Enseignant introuvable') : (c.enseignant_nom ? esc(c.enseignant_nom) + ' <i>(compte non lié)</i>' : 'Aucun enseignant assigné');
-    const pn = ((window.__promosCache || []).find(p => p.id === c.promotion_id) || {}).nom || '';
-    return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div><div class="s">${who}</div>
-      <div class="s" style="font-size:10.5px;">${pn ? esc(pn.split(' ')[0]) + ' · ' : ''}${c.credits != null ? esc(c.credits) + ' crédit(s)' : 'crédits ?'} · ${c.semestre != null && c.semestre !== '' ? 'Semestre ' + esc(c.semestre) : 'semestre ?'} · ${c.volume_horaire != null ? esc(c.volume_horaire) + ' h' : 'heures ?'}</div></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openEditCourse('${c.id}')">Modifier</button>
-        <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openChangeTeacher('${c.id}')">Changer l'enseignant</button>
-      </div>
-      <div id="ceBox${c.id}" style="width:100%;"></div>
+    const who = c.enseignant_responsable_id ? (t ? esc(teacherLabel(t)) + ' ' + teacherBadge(t) : 'Enseignant introuvable') : 'Aucun enseignant assigné';
+    return `<div class="list-item" style="flex-wrap:wrap;"><div><div class="t">${esc(c.code)} — ${esc(c.intitule)}</div><div class="s">${who}</div></div>
+      <button class="mini-btn" style="width:auto;padding:6px 10px;font-size:11px;" onclick="openChangeTeacher('${c.id}')">Changer l'enseignant</button>
       <div id="ctBox${c.id}" style="width:100%;"></div></div>`;
   });
-  h += '</div>';
   h += `<input class="mini-input" id="cCode" placeholder="Code du cours (ex: MU101)">
     <input class="mini-input" id="cIntitule" placeholder="Intitulé du cours">
     <select class="mini-input" id="cPromo"><option value="">— Promotion —</option>${promoOptions}</select>
     ${teacherPicker('cTeacher', null)}
     <input class="mini-input" id="cCredits" type="number" placeholder="Crédits (ex: 4)">
-    <select class="mini-input" id="cSemestre"><option value="">— Semestre —</option><option value="1">Semestre 1</option><option value="2">Semestre 2</option></select>
-    <input class="mini-input" id="cVolume" type="number" placeholder="Volume horaire en heures (ex: 30)">
     <button class="mini-btn" onclick="addCourse()">Ajouter le cours</button>`;
 
   h += `<h2 class="sec">Horaire</h2>` + fmtEmpty(scheds, s => `<div class="list-item"><div><div class="t">${esc(s.jour)} ${esc(s.heure_debut)} — ${esc(s.courses?s.courses.intitule:'')}</div><div class="s">${esc(s.promotions?s.promotions.nom:'')} · Salle ${esc(s.salle||'—')}</div></div></div>`);
@@ -3220,60 +2350,6 @@ function teacherPick(prefix, id){
   document.getElementById(prefix + 'S').innerHTML = '';
 }
 
-function filterCourseList(){
-  const norm = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const tokens = norm(document.getElementById('courseSearch').value).split(/\s+/).filter(Boolean);
-  document.querySelectorAll('#courseList > .list-item').forEach(el => {
-    const hay = norm(el.textContent);
-    el.style.display = tokens.every(t => hay.includes(t)) ? '' : 'none';
-  });
-}
-
-function openEditCourse(cid){
-  const box = document.getElementById('ceBox' + cid);
-  if(!box) return;
-  if(box.innerHTML){ box.innerHTML = ''; return; }
-  const c = (window.__coursesCache || []).find(x => x.id === cid) || {};
-  const sem = c.semestre == null ? '' : String(c.semestre);
-  box.innerHTML = `<input class="mini-input" id="ceIntitule${cid}" placeholder="Intitulé" value="${esc(c.intitule || '')}">
-    <input class="mini-input" id="ceEns${cid}" placeholder="Nom de l'enseignant (texte, si pas encore de compte)" value="${esc(c.enseignant_nom || '')}">
-    <input class="mini-input" id="ceCredits${cid}" type="number" placeholder="Crédits" value="${c.credits == null ? '' : esc(c.credits)}">
-    <select class="mini-input" id="ceSem${cid}"><option value="">— Semestre —</option>
-      <option value="1" ${sem === '1' ? 'selected' : ''}>Semestre 1</option><option value="2" ${sem === '2' ? 'selected' : ''}>Semestre 2</option></select>
-    <input class="mini-input" id="ceVol${cid}" type="number" placeholder="Volume horaire (h)" value="${c.volume_horaire == null ? '' : esc(c.volume_horaire)}">
-    <button class="mini-btn" onclick="saveEditCourse('${cid}')">Enregistrer les modifications</button>
-    <button style="background:var(--danger);color:#fff;border:none;border-radius:10px;padding:10px;width:100%;margin-top:6px;font-size:12.5px;" onclick="deleteCourse('${cid}')">Supprimer ce cours</button>`;
-}
-
-async function saveEditCourse(cid){
-  const intitule = document.getElementById('ceIntitule' + cid).value.trim();
-  if(!intitule){ alert("L'intitulé est requis."); return; }
-  const upd = { intitule };
-  const cr = document.getElementById('ceCredits' + cid).value;
-  const sm = document.getElementById('ceSem' + cid).value;
-  const vo = document.getElementById('ceVol' + cid).value;
-  upd.credits = cr === '' ? null : parseInt(cr);
-  if(sm !== '') upd.semestre = parseInt(sm);
-  upd.volume_horaire = vo === '' ? null : parseInt(vo);
-  upd.enseignant_nom = document.getElementById('ceEns' + cid).value.trim() || null;
-  const { data, error } = await sb.from('courses').update(upd).eq('id', cid).select();
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(!data || !data.length){ alert('Modification refusée : droits insuffisants (script SQL cours_gestion.sql pas encore exécuté ?).'); return; }
-  loadScheduleAdmin();
-}
-
-async function deleteCourse(cid){
-  const cnt = async t => { const r = await sb.from(t).select('*', { count:'exact', head:true }).eq('course_id', cid); return r.error ? 0 : (r.count || 0); };
-  const [ng, na, ns] = await Promise.all([cnt('grades'), cnt('attendance'), cnt('schedules')]);
-  if(ng || na){ alert('Ce cours a déjà ' + ng + ' note(s) et ' + na + ' présence(s) : il ne peut pas être supprimé.'); return; }
-  if(ns){ alert('Ce cours a encore ' + ns + ' ligne(s) dans l\'horaire : retire-les avant de le supprimer.'); return; }
-  if(!confirm('Supprimer définitivement ce cours ?')) return;
-  const { data, error } = await sb.from('courses').delete().eq('id', cid).select();
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(!data || !data.length){ alert('Suppression refusée : droits insuffisants (script SQL cours_gestion.sql pas encore exécuté ?).'); return; }
-  loadScheduleAdmin();
-}
-
 function openChangeTeacher(cid){
   const box = document.getElementById('ctBox' + cid);
   if(!box) return;
@@ -3299,10 +2375,8 @@ async function addCourse(){
   const promotion_id = document.getElementById('cPromo').value || null;
   const enseignant_responsable_id = document.getElementById('cTeacher').value || null;
   const credits = parseInt(document.getElementById('cCredits').value) || null;
-  const semestre = parseInt(document.getElementById('cSemestre').value) || null;
-  const volume_horaire = parseInt(document.getElementById('cVolume').value) || null;
   if(!code || !intitule){ alert('Code et intitulé requis.'); return; }
-  const { error } = await sb.from('courses').insert({ code, intitule, promotion_id, enseignant_responsable_id, credits, semestre, volume_horaire });
+  const { error } = await sb.from('courses').insert({ code, intitule, promotion_id, enseignant_responsable_id, credits });
   if(error){ alert("Erreur : " + error.message); return; }
   loadScheduleAdmin();
 }
